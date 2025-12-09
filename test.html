@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solar System (GLTF + A-Frame WebXR)</title>
+
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-orbit-controls-component/dist/aframe-orbit-controls-component.min.js"></script>
+
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    #infoPanel {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      width: 260px;
+      background: rgba(0,0,0,0.65);
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+      z-index: 10;
+    }
+    #infoPanel h3 { margin: 0 0 6px 0; font-size: 16px }
+    #closeInfo { cursor: pointer; padding: 4px 8px; background: rgba(255,255,255,0.1); border-radius: 4px; }
+  </style>
+</head>
+
+<body>
+
+<div id="infoPanel">
+  <h3 id="infoTitle">Info</h3>
+  <p id="infoText">รายละเอียดดาว</p>
+  <div style="text-align:right"><span id="closeInfo">ปิด</span></div>
+</div>
+
+<a-scene background="color: #000" renderer="antialias: true">
+
+  <!-- กล้อง + Orbit Controls -->
+  <a-entity id="cameraRig">
+    <a-entity camera
+      position="0 3 12"
+      orbit-controls="
+        target: 0 0 0;
+        enableDamping: true;
+        dampingFactor: 0.15;
+        rotateSpeed: 0.35;
+      ">
+    </a-entity>
+  </a-entity>
+
+  <!-- แสง -->
+  <a-entity light="type: ambient; intensity: 0.6"></a-entity>
+  <a-entity light="type: directional; intensity: 1.3" position="5 5 5"></a-entity>
+
+  <!-- โหลดโมเดลระบบสุริยะของคุณ -->
+  <a-entity id="solarModel"
+            gltf-model="solar_system_animation/scene.gltf"
+            scale="1 1 1"
+            position="0 0 0">
+  </a-entity>
+
+</a-scene>
+
+<script>
+  // Panel close
+  document.getElementById('closeInfo').onclick = () => {
+    document.getElementById('infoPanel').style.display = 'none';
+  };
+
+  // ใช้ raycaster จับชื่อ object ใน GLTF
+  AFRAME.registerComponent('model-click-info', {
+    init: function () {
+      const sceneEl = this.el.sceneEl;
+
+      sceneEl.addEventListener('click', (e) => {
+        if (!e.detail?.intersection) return;
+
+        const hit = e.detail.intersection.object;
+        if (!hit) return;
+
+        const name = hit.name || "Unknown Object";
+
+        document.getElementById('infoTitle').innerText = name;
+        document.getElementById('infoText').innerText = "คุณคลิกที่: " + name;
+        document.getElementById('infoPanel').style.display = 'block';
+      });
+    }
+  });
+
+  document.querySelector('#solarModel').setAttribute('model-click-info', '');
+</script>
+
+</body>
+</html>
