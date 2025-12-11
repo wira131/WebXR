@@ -34,7 +34,11 @@
     <div style="text-align:right"><span id="closeInfo">ปิด</span></div>
   </div>
 
-  <a-scene renderer="antialias: true">
+  <a-scene
+  xr-mode-ui="enabled: true"
+  webxr="optionalFeatures: hit-test"
+  renderer="colorManagement: true; physicallyCorrectLights: true; alpha: true"
+>
 
     <!-- 🌌 แบ็คกราวอวกาศ -->
     <a-sky src="textures/stars.jpg"></a-sky>
@@ -213,6 +217,18 @@
   document.getElementById('closeInfo').onclick = () => {
     document.getElementById('infoPanel').style.display = 'none';
   };
+  const sceneEl = document.querySelector('a-scene');
+  const sky = document.querySelector('a-sky');
+
+  sceneEl.addEventListener('enter-vr', () => {
+    if (sceneEl.is('ar-mode')) {
+      sky.setAttribute('visible', 'false');   // ซ่อน sky ใน AR
+    }
+  });
+
+  sceneEl.addEventListener('exit-vr', () => {
+    sky.setAttribute('visible', 'true');      // กลับมาเมื่อออก AR
+  });
 </script>
 
 
