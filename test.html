@@ -41,9 +41,10 @@
   </div>
 
   <a-scene
-    xr-mode-ui="enabled: true"
-    webxr="optionalFeatures: ['hit-test']; requiredFeatures: ['dom-overlay']; dom-overlay: #overlay;"
-    renderer="colorManagement: true; physicallyCorrectLights: true; alpha: true">
+  xr-mode-ui="enabled: true"
+  webxr="optionalFeatures: ['hit-test'];"
+  renderer="colorManagement: true; alpha: true">
+
 
     <a-sky id="sky" src="textures/stars.jpg"></a-sky>
 
@@ -199,14 +200,14 @@
 
   <script>
     /* ---------- ระบบคลิกดาว ---------- */
-    document.querySelectorAll('.clickable').forEach(el => {
-      el.addEventListener('click', e => {
-        const planet = e.detail.intersectedEl;
-        document.getElementById('infoTitle').innerText = planet.dataset.name;
-        document.getElementById('infoText').innerText  = planet.dataset.info;
-        document.getElementById('infoPanel').style.display = 'block';
-      });
-    });
+    document.querySelectorAll('.clickable').forEach(obj => {
+  obj.addEventListener('click', () => {
+    document.getElementById('infoTitle').innerText = obj.dataset.name;
+    document.getElementById('infoText').innerText  = obj.dataset.info;
+    document.getElementById('infoPanel').style.display = 'block';
+  });
+});
+
 
     document.getElementById('closeInfo').onclick = () => {
       document.getElementById('infoPanel').style.display = 'none';
@@ -224,45 +225,44 @@
       sky.setAttribute("visible", "true");
     });
 
-    /* ==========================================================
-       ⭐⭐⭐  Pinch Zoom Component  ⭐⭐⭐
-       ========================================================== */
     AFRAME.registerComponent('pinch-zoom', {
-      schema: { zoomSpeed: { default: 0.02 }, min: { default: 1 }, max: { default: 10 } },
+  schema: {
+    min: { default: 2 },
+    max: { default: 15 },
+    speed: { default: 0.015 }
+  },
 
-      init: function () {
-        this.isPinching = false;
-        this.startDistance = 0;
-        this.currentZoom = 7;   // ระยะเริ่มต้นตามกล้อง
-        this.camera = this.el;  // ใช้ cameraRig โดยตรง
-      },
+  init: function () {
+    this.initialDistance = 0;
+    this.zoom = this.el.object3D.position.z;
 
-      tick: function () {
-        const canvas = this.el.sceneEl.canvas;
-        if (!canvas || !canvas.touches || canvas.touches.length < 2) return;
+    const canvas = this.el.sceneEl.canvas;
 
-        const [t1, t2] = canvas.touches;
-
-        const dx = t1.clientX - t2.clientX;
-        const dy = t1.clientY - t2.clientY;
-        const distance = Math.sqrt(dx*dx + dy*dy);
-
-        if (!this.isPinching) {
-          this.startDistance = distance;
-          this.isPinching = true;
-          return;
-        }
-
-        const delta = distance - this.startDistance;
-        this.startDistance = distance;
-
-        this.currentZoom -= delta * this.data.zoomSpeed;
-
-        this.currentZoom = Math.min(this.data.max, Math.max(this.data.min, this.currentZoom));
-
-        this.camera.object3D.position.z = this.currentZoom;
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length == 2) {
+        this.initialDistance = this.getTouchDistance(e.touches);
       }
     });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (e.touches.length == 2) {
+        const newDist = this.getTouchDistance(e.touches);
+        const delta = newDist - this.initialDistance;
+        this.initialDistance = newDist;
+
+        this.zoom -= delta * this.data.speed;
+        this.zoom = Math.max(this.data.min, Math.min(this.data.max, this.zoom));
+        this.el.object3D.position.z = this.zoom;
+      }
+    });
+  },
+
+  getTouchDistance: function (touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+});
 
   </script>
 </body>
