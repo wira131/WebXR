@@ -45,8 +45,8 @@
   webxr="optionalFeatures: ['hit-test'];"
   renderer="colorManagement: true; alpha: true">
 
+    <a-sky id="sky" src="textures/stars.jpg"></a-sky>
 
-    
 
     <a-entity id="sun-parent" position="0 0 0">
       <a-sphere id="sun" radius="1.2" src="textures/sun.jpg"
@@ -57,7 +57,6 @@
     <a-entity light="type: ambient; intensity: 0.3"></a-entity>
     <a-entity light="type: point; intensity: 2; distance: 80" position="0 0 0"></a-entity>
 
-    <!-- 👀 Camera + Pinch Zoom -->
     <a-entity id="cameraRig" pinch-zoom position="0 1.6 7">
       <a-entity camera look-controls wasd-controls>
         <a-entity cursor="fuse:false; rayOrigin:mouse"
@@ -68,7 +67,6 @@
       </a-entity>
     </a-entity>
 
-    <!-- Mercury -->
     <a-entity id="orbit-mercury">
       <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:1.6; radiusOuter:1.61"
                 material="color:#555; opacity:0.2"></a-entity>
@@ -81,7 +79,6 @@
       </a-entity>
     </a-entity>
 
-    <!-- Venus -->
     <a-entity id="orbit-venus">
       <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:2.3; radiusOuter:2.31"
                 material="color:#555; opacity:0.2"></a-entity>
@@ -94,7 +91,6 @@
       </a-entity>
     </a-entity>
 
-    <!-- Earth + Moon -->
     <a-entity id="orbit-earth">
       <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:3.2; radiusOuter:3.21"
                 material="color:#555; opacity:0.2"></a-entity>
@@ -123,7 +119,6 @@
     </a-entity>
 
 
-    <!-- Mars -->
     <a-entity id="orbit-mars">
       <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:4.1; radiusOuter:4.11"
                 material="color:#555; opacity:0.2"></a-entity>
@@ -136,7 +131,6 @@
       </a-entity>
     </a-entity>
 
-    <!-- Jupiter -->
     <a-entity id="orbit-jupiter">
       <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:5.6; radiusOuter:5.61"
                 material="color:#555; opacity:0.2"></a-entity>
@@ -149,7 +143,6 @@
       </a-entity>
     </a-entity>
 
-    <!-- Saturn -->
     <a-entity id="orbit-saturn">
       <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:7.0; radiusOuter:7.01"
                 material="color:#555; opacity:0.2"></a-entity>
@@ -170,7 +163,6 @@
       </a-entity>
     </a-entity>
 
-    <!-- Uranus -->
     <a-entity id="orbit-uranus">
       <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:8.6; radiusOuter:8.61"
                 material="color:#555; opacity:0.2"></a-entity>
@@ -183,7 +175,6 @@
       </a-entity>
     </a-entity>
 
-    <!-- Neptune -->
     <a-entity id="orbit-neptune">
       <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:10; radiusOuter:10.01"
                 material="color:#555; opacity:0.2"></a-entity>
@@ -201,12 +192,12 @@
   <script>
     /* ---------- ระบบคลิกดาว ---------- */
     document.querySelectorAll('.clickable').forEach(obj => {
-  obj.addEventListener('click', () => {
-    document.getElementById('infoTitle').innerText = obj.dataset.name;
-    document.getElementById('infoText').innerText  = obj.dataset.info;
-    document.getElementById('infoPanel').style.display = 'block';
-  });
-});
+      obj.addEventListener('click', () => {
+        document.getElementById('infoTitle').innerText = obj.dataset.name;
+        document.getElementById('infoText').innerText  = obj.dataset.info;
+        document.getElementById('infoPanel').style.display = 'block';
+      });
+    });
 
 
     document.getElementById('closeInfo').onclick = () => {
@@ -214,55 +205,59 @@
     };
 
     /* ---------- ควบคุม sky ตอน AR ---------- */
+    // โค้ดส่วนนี้ต้องการ element ที่มี id="sky" เพื่อทำงานได้ถูกต้อง
     const scene = document.querySelector("a-scene");
     const sky = document.getElementById("sky");
 
-    scene.addEventListener("enter-ar", () => {
-      sky.setAttribute("visible", "false");
-    });
+    if (sky) { // ตรวจสอบว่ามี sky อยู่จริงก่อนเริ่ม listen events
+        scene.addEventListener("enter-ar", () => {
+          sky.setAttribute("visible", "false");
+        });
 
-    scene.addEventListener("exit-ar", () => {
-      sky.setAttribute("visible", "true");
-    });
+        scene.addEventListener("exit-ar", () => {
+          sky.setAttribute("visible", "true");
+        });
+    }
+
 
     AFRAME.registerComponent('pinch-zoom', {
-  schema: {
-    min: { default: 2 },
-    max: { default: 15 },
-    speed: { default: 0.015 }
-  },
+      schema: {
+        min: { default: 2 },
+        max: { default: 15 },
+        speed: { default: 0.015 }
+      },
 
-  init: function () {
-    this.initialDistance = 0;
-    this.zoom = this.el.object3D.position.z;
+      init: function () {
+        this.initialDistance = 0;
+        this.zoom = this.el.object3D.position.z;
 
-    const canvas = this.el.sceneEl.canvas;
+        const canvas = this.el.sceneEl.canvas;
 
-    canvas.addEventListener('touchstart', (e) => {
-      if (e.touches.length == 2) {
-        this.initialDistance = this.getTouchDistance(e.touches);
+        canvas.addEventListener('touchstart', (e) => {
+          if (e.touches.length == 2) {
+            this.initialDistance = this.getTouchDistance(e.touches);
+          }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+          if (e.touches.length == 2) {
+            const newDist = this.getTouchDistance(e.touches);
+            const delta = newDist - this.initialDistance;
+            this.initialDistance = newDist;
+
+            this.zoom -= delta * this.data.speed;
+            this.zoom = Math.max(this.data.min, Math.min(this.data.max, this.zoom));
+            this.el.object3D.position.z = this.zoom;
+          }
+        });
+      },
+
+      getTouchDistance: function (touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
       }
     });
-
-    canvas.addEventListener('touchmove', (e) => {
-      if (e.touches.length == 2) {
-        const newDist = this.getTouchDistance(e.touches);
-        const delta = newDist - this.initialDistance;
-        this.initialDistance = newDist;
-
-        this.zoom -= delta * this.data.speed;
-        this.zoom = Math.max(this.data.min, Math.min(this.data.max, this.zoom));
-        this.el.object3D.position.z = this.zoom;
-      }
-    });
-  },
-
-  getTouchDistance: function (touches) {
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-});
 
   </script>
 </body>
