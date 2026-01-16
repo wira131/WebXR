@@ -2,194 +2,509 @@
 <html lang="th">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0">
-  <title>ระบบสุริยะ — AR (A-Frame + AR.js)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ระบบสุริยะ (A-Frame WebXR)</title>
 
-  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 
-  <!-- AR.js for A-Frame (ใช้ webcam / mobile camera เป็น background) -->
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
   <style>
-    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #000; color: #fff; }
-    #hint {
-      position: absolute; left: 12px; top: 12px; z-index: 10;
-      background: rgba(0,0,0,0.5); padding: 8px 10px; border-radius: 6px;
+    body { 
+      margin: 0; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+    }
+    
+    #infoPanel {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      width: 280px;
+      background: linear-gradient(135deg, rgba(20,20,40,0.95), rgba(40,20,60,0.95));
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      z-index: 20;
       font-size: 14px;
+      display: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      animation: slideIn 0.3s ease-out;
     }
-    #controls {
-      position: absolute; right: 12px; top: 12px; z-index: 10;
-      display:flex; gap:8px;
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
     }
-    button { padding:8px 12px; border-radius:6px; border: none; background:#1976d2; color:white; font-weight:600; cursor:pointer; }
+    
+    #infoPanel h3 { 
+      margin: 0 0 10px 0; 
+      font-size: 20px;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      border-bottom: 2px solid rgba(255,255,255,0.3);
+      padding-bottom: 8px;
+    }
+    
+    #infoPanel p { 
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+    
+    #closeInfo { 
+      cursor: pointer; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 8px 16px; 
+      border-radius: 6px;
+      display: inline-block;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+    }
+    
+    #closeInfo:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102,126,234,0.6);
+    }
+    
+    #controlPanel {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      background: rgba(0,0,0,0.7);
+      padding: 12px;
+      border-radius: 10px;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    #controlPanel button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      margin: 4px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+    }
+    
+    #controlPanel button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102,126,234,0.6);
+    }
+    
+    #speedControl {
+      margin-top: 8px;
+      color: white;
+    }
+    
+    #speedSlider {
+      width: 100%;
+      margin-top: 4px;
+    }
+    
+    #titleOverlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 2s ease;
+    }
+    
+    #titleOverlay h1 {
+      font-size: 48px;
+      color: white;
+      text-shadow: 0 0 20px rgba(102,126,234,0.8), 0 0 40px rgba(118,75,162,0.6);
+      margin: 0;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    #titleOverlay.hidden {
+      opacity: 0;
+    }
+    
+    #instructions {
+      position: absolute;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      z-index: 15;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
   </style>
 </head>
+
 <body>
-  <div id="hint">แตะยืนยันอนุญาตกล้อง → รอโหลดกล้อง แล้วแตะที่พื้น/หน้าจอเพื่อวางระบบสุริยะ</div>
-  <div id="controls">
-    <button id="placeBtn">วางระบบสุริยะ</button>
-    <button id="resetBtn">รีเซ็ตตำแหน่ง</button>
+
+  <div id="titleOverlay">
+    <h1>🌌 ระบบสุริยะ 🌌</h1>
   </div>
 
-  <!-- A-Frame scene: arjs 'sourceType: webcam' จะเปิดกล้องเป็น background -->
-  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="antialias: true; colorManagement: true">
+  <div id="instructions">
+    🖱️ คลิกที่ดาวเคราะห์เพื่อดูข้อมูล | 📱 ใช้สองนิ้วซูมเข้า-ออก | 🥽 กด VR เพื่อเข้าโหมด AR/VR
+  </div>
 
-    <!-- กลุ่มระบบสุริยะ (จะถูกวางลงเมื่อต้องการ) -->
-    <a-entity id="solarRoot" visible="false" position="0 0 -2" rotation="0 0 0" scale="0.6 0.6 0.6">
+  <div id="infoPanel">
+    <h3 id="infoTitle"></h3>
+    <p id="infoText"></p>
+    <div style="text-align:right"><span id="closeInfo">ปิด</span></div>
+  </div>
 
-      <!-- แสง (แสงจากดวงอาทิตย์ + เบื้องหลัง) -->
-      <a-entity light="type: ambient; intensity: 0.25"></a-entity>
-      <a-entity light="type: point; intensity: 2.5; distance: 50" position="0 0 0"></a-entity>
+  <div id="controlPanel">
+    <div style="color: white; font-weight: 600; margin-bottom: 8px;">⚙️ การควบคุม</div>
+    <button id="toggleOrbits">แสดง/ซ่อน วงโคจร</button>
+    <button id="toggleLabels">แสดง/ซ่อน ป้ายชื่อ</button>
+    <div id="speedControl">
+      <label>⚡ ความเร็ว: <span id="speedValue">1.0x</span></label>
+      <input type="range" id="speedSlider" min="0" max="5" step="0.5" value="1">
+    </div>
+  </div>
 
-      <!-- SUN -->
-      <a-sphere id="sun" radius="0.35" position="0 0 0"
-                src="https://raw.githubusercontent.com/stellarium/stellarium/master/textures/sun.jpg"
-                material="emissive: #ffb74d; emissiveIntensity: 1.6; shader: standard">
-        <a-animation attribute="rotation" to="0 360 0" dur="30000" repeat="indefinite"></a-animation>
-      </a-sphere>
+  <a-scene
+    xr-mode-ui="enabled: true"
+    webxr="optionalFeatures: ['hit-test'];"
+    renderer="colorManagement: true; alpha: true; antialias: true">
 
-      <!-- helper: small glow (billboard) -->
-      <a-ring radius-inner="0.5" radius-outer="0.8" position="0 0 0" rotation="-90 0 0"
-              material="shader: flat; opacity: 0.12"></a-ring>
+    <a-sky id="sky" src="textures/stars.jpg"></a-sky>
 
-      <!-- PLANETS: ตัวอย่างแบบง่าย ใช้ texture จาก CDN -->
-      <!-- Mercury -->
-      <a-entity class="orbit" id="orbit-mercury">
-        <a-entity geometry="primitive: ring; radiusInner: 0.9; radiusOuter: 0.905" rotation="-90 0 0" material="shader: flat; opacity: 0.06"></a-entity>
-        <a-entity id="mercury-parent" animation="property: rotation; to: 0 360 0; dur: 8000; loop: true; easing: linear">
-          <a-sphere id="mercury" radius="0.04" position="0.9 0 0"
-                    src="https://raw.githubusercontent.com/eleonorakiziv/planet-textures/main/mercury.jpg"
-                    material="shader: standard"></a-sphere>
-        </a-entity>
-      </a-entity>
-
-      <!-- Venus -->
-      <a-entity class="orbit" id="orbit-venus">
-        <a-entity geometry="primitive: ring; radiusInner: 1.2; radiusOuter: 1.205" rotation="-90 0 0" material="shader: flat; opacity: 0.05"></a-entity>
-        <a-entity id="venus-parent" animation="property: rotation; to: 0 360 0; dur: 14000; loop: true; easing: linear">
-          <a-sphere id="venus" radius="0.06" position="1.2 0 0"
-                    src="https://raw.githubusercontent.com/eleonorakiziv/planet-textures/main/venus.jpg"
-                    material="shader: standard"></a-sphere>
-        </a-entity>
-      </a-entity>
-
-      <!-- Earth + Moon -->
-      <a-entity class="orbit" id="orbit-earth">
-        <a-entity geometry="primitive: ring; radiusInner: 1.6; radiusOuter: 1.605" rotation="-90 0 0" material="shader: flat; opacity: 0.04"></a-entity>
-        <a-entity id="earth-parent" animation="property: rotation; to: 0 360 0; dur: 22000; loop: true; easing: linear">
-          <a-sphere id="earth" radius="0.07" position="1.6 0 0"
-                    src="https://raw.githubusercontent.com/eleonorakiziv/planet-textures/main/earth.jpg"
-                    material="shader: standard"></a-sphere>
-
-          <!-- moon orbiting earth -->
-          <a-entity id="moon-orbit" animation="property: rotation; to: 0 360 0; dur: 5000; loop: true; easing: linear" position="1.6 0 0">
-            <a-sphere id="moon" radius="0.02" position="0.2 0 0"
-                      src="https://raw.githubusercontent.com/eleonorakiziv/planet-textures/main/moon.jpg"
-                      material="shader: standard"></a-sphere>
-          </a-entity>
-
-        </a-entity>
-      </a-entity>
-
-      <!-- Mars -->
-      <a-entity class="orbit" id="orbit-mars">
-        <a-entity geometry="primitive: ring; radiusInner: 1.95; radiusOuter: 1.955" rotation="-90 0 0" material="shader: flat; opacity: 0.035"></a-entity>
-        <a-entity id="mars-parent" animation="property: rotation; to: 0 360 0; dur: 32000; loop: true; easing: linear">
-          <a-sphere id="mars" radius="0.05" position="1.95 0 0"
-                    src="https://raw.githubusercontent.com/eleonorakiziv/planet-textures/main/mars.jpg"
-                    material="shader: standard"></a-sphere>
-        </a-entity>
-      </a-entity>
-
-      <!-- Jupiter -->
-      <a-entity class="orbit" id="orbit-jupiter">
-        <a-entity geometry="primitive: ring; radiusInner: 2.6; radiusOuter: 2.605" rotation="-90 0 0" material="shader: flat; opacity: 0.03"></a-entity>
-        <a-entity id="jupiter-parent" animation="property: rotation; to: 0 360 0; dur: 44000; loop: true; easing: linear">
-          <a-sphere id="jupiter" radius="0.14" position="2.6 0 0"
-                    src="https://raw.githubusercontent.com/eleonorakiziv/planet-textures/main/jupiter.jpg"
-                    material="shader: standard"></a-sphere>
-        </a-entity>
-      </a-entity>
-
-      <!-- Saturn (with ring) -->
-      <a-entity class="orbit" id="orbit-saturn">
-        <a-entity geometry="primitive: ring; radiusInner: 3.4; radiusOuter: 3.405" rotation="-90 0 0" material="shader: flat; opacity: 0.02"></a-entity>
-        <a-entity id="saturn-parent" animation="property: rotation; to: 0 360 0; dur: 56000; loop: true; easing: linear">
-          <a-entity position="3.4 0 0">
-            <a-sphere id="saturn" radius="0.12"
-                      src="https://raw.githubusercontent.com/eleonorakiziv/planet-textures/main/saturn.jpg"
-                      material="shader: standard"></a-sphere>
-            <a-ring radius-inner="0.16" radius-outer="0.28" rotation="90 0 0" position="0 0 0"
-                    src="https://raw.githubusercontent.com/eleonorakiziv/planet-textures/main/saturn-ring.png"
-                    material="shader: flat; side: double; opacity: 0.85"></a-ring>
-          </a-entity>
-        </a-entity>
-      </a-entity>
-
-      <!-- Uranus -->
-      <a-entity class="orbit" id="orbit-uranus">
-        <a-entity geometry="primitive: ring; radiusInner: 3.9; radiusOuter: 3.905" rotation="-90 0 0" material="shader: flat; opacity: 0.02"></a-entity>
-        <a-entity id="uranus-parent" animation="property: rotation; to: 0 360 0; dur: 68000; loop: true; easing: linear">
-          <a-sphere id="uranus" radius="0.09" position="3.9 0 0"
-                    src="https://raw.githubusercontent.com/eleonorakiziv/planet-textures/main/uranus.jpg"
-                    material="shader: standard"></a-sphere>
-        </a-entity>
-      </a-entity>
-
-      <!-- Neptune -->
-      <a-entity class="orbit" id="orbit-neptune">
-        <a-entity geometry="primitive: ring; radiusInner: 4.5; radiusOuter: 4.505" rotation="-90 0 0" material="shader: flat; opacity: 0.02"></a-entity>
-        <a-entity id="neptune-parent" animation="property: rotation; to: 0 360 0; dur: 82000; loop: true; easing: linear">
-          <a-sphere id="neptune" radius="0.085" position="4.5 0 0"
-                    src="https://raw.githubusercontent.com/eleonorakiziv/planet-textures/main/neptune.jpg"
-                    material="shader: standard"></a-sphere>
-        </a-entity>
-      </a-entity>
-
+    <!-- ดวงอาทิตย์พร้อมแสง glow -->
+    <a-entity id="sun-parent" position="0 0 0">
+      <a-sphere id="sun" radius="1.2" src="textures/sun.jpg"
+                material="shader: flat; emissive: #FDB813; emissiveIntensity: 0.5"></a-sphere>
+      
+      <!-- Glow effect -->
+      <a-sphere radius="1.5" material="shader: flat; color: #FDB813; opacity: 0.3; transparent: true"></a-sphere>
+      <a-sphere radius="1.8" material="shader: flat; color: #FFD700; opacity: 0.15; transparent: true"></a-sphere>
+      
+      <a-animation attribute="rotation" to="0 360 0" dur="30000" repeat="indefinite"></a-animation>
     </a-entity>
 
-    <!-- Camera (AR.js จัดการกล้องด้านหลังให้เป็น background) -->
-    <a-entity camera look-controls position="0 1.6 0"></a-entity>
+    <!-- ดาวพราวพราว -->
+    <a-entity id="stars"></a-entity>
+
+    <a-entity light="type: ambient; intensity: 0.4"></a-entity>
+    <a-entity light="type: point; intensity: 2.5; distance: 100; decay: 2" position="0 0 0"></a-entity>
+
+    <a-entity id="cameraRig" pinch-zoom position="0 1.6 7">
+      <a-entity camera look-controls wasd-controls>
+        <a-entity cursor="fuse:false; rayOrigin:mouse"
+                  raycaster="objects: .clickable"
+                  position="0 0 -1"
+                  geometry="primitive:ring; radiusInner:0.01; radiusOuter:0.02"
+                  material="color:#67eea; shader: flat"></a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Mercury -->
+    <a-entity id="orbit-mercury" class="orbit-ring">
+      <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:1.6; radiusOuter:1.61"
+                material="color:#888; opacity:0.3"></a-entity>
+
+      <a-entity animation="property:rotation; to:0 360 0; dur:8000; loop:true" class="planet-orbit">
+        <a-entity position="1.6 0 0">
+          <a-sphere class="clickable planet" radius="0.08" src="textures/mercury.jpg"
+                    data-name="☿ Mercury (ดาวพุธ)"
+                    data-info="ดาวเคราะห์ที่อยู่ใกล้ดวงอาทิตย์ที่สุด มีพื้นผิวเป็นหลุมอุกกาบาต อุณหภูมิกลางวันสูงถึง 430°C">
+            <a-animation attribute="rotation" to="0 360 0" dur="5000" repeat="indefinite"></a-animation>
+          </a-sphere>
+          <a-text class="planet-label" value="Mercury" align="center" position="0 0.15 0" scale="0.3 0.3 0.3" color="#fff"></a-text>
+        </a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Venus -->
+    <a-entity id="orbit-venus" class="orbit-ring">
+      <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:2.3; radiusOuter:2.31"
+                material="color:#888; opacity:0.3"></a-entity>
+
+      <a-entity animation="property:rotation; to:0 360 0; dur:14000; loop:true" class="planet-orbit">
+        <a-entity position="2.3 0 0">
+          <a-sphere class="clickable planet" radius="0.14" src="textures/venus.jpg"
+                    data-name="♀ Venus (ดาวศุกร์)"
+                    data-info="ดาวศุกร์ ร้อนที่สุดในระบบสุริยะ อุณหภูมิ 462°C ห่มด้วยบรรยากาศหนาทึบ">
+            <a-animation attribute="rotation" to="0 360 0" dur="24000" repeat="indefinite"></a-animation>
+          </a-sphere>
+          <a-text class="planet-label" value="Venus" align="center" position="0 0.2 0" scale="0.35 0.35 0.35" color="#fff"></a-text>
+        </a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Earth + Moon -->
+    <a-entity id="orbit-earth" class="orbit-ring">
+      <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:3.2; radiusOuter:3.21"
+                material="color:#888; opacity:0.3"></a-entity>
+
+      <a-entity id="earth-system" animation="property:rotation; to:0 360 0; dur:22000; loop:true" class="planet-orbit">
+        <a-entity position="3.2 0 0">
+          <a-sphere id="earth" class="clickable planet" radius="0.18" src="textures/earth.jpg"
+                    data-name="🌍 Earth (โลก)"
+                    data-info="โลก บ้านของเรา มีน้ำและสิ่งมีชีวิตมากมาย มีชั้นบรรยากาศปกป้อง">
+            <a-animation attribute="rotation" to="0 360 0" dur="10000" repeat="indefinite"></a-animation>
+          </a-sphere>
+          <a-text class="planet-label" value="Earth" align="center" position="0 0.25 0" scale="0.4 0.4 0.4" color="#fff"></a-text>
+
+          <a-entity id="moon-orbit" animation="property:rotation; to:0 360 0; dur:3000; loop:true">
+            <a-sphere radius="0.05" position="0.3 0 0" class="clickable" src="textures/moon.jpg"
+                      data-name="🌙 Moon (ดวงจันทร์)"
+                      data-info="ดวงจันทร์ ดาวบริวารของโลก ควบคุมกระแสน้ำขึ้นน้ำลง"></a-sphere>
+          </a-entity>
+        </a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Mars -->
+    <a-entity id="orbit-mars" class="orbit-ring">
+      <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:4.1; radiusOuter:4.11"
+                material="color:#888; opacity:0.3"></a-entity>
+
+      <a-entity animation="property:rotation; to:0 360 0; dur:32000; loop:true" class="planet-orbit">
+        <a-entity position="4.1 0 0">
+          <a-sphere radius="0.12" class="clickable planet" src="textures/mars.jpg"
+                    data-name="♂ Mars (ดาวอังคาร)"
+                    data-info="ดาวเคราะห์สีแดง มีภูเขาไฟที่สูงที่สุดในระบบสุริยะ มีน้ำแข็งที่ขั้วโลก">
+            <a-animation attribute="rotation" to="0 360 0" dur="10200" repeat="indefinite"></a-animation>
+          </a-sphere>
+          <a-text class="planet-label" value="Mars" align="center" position="0 0.2 0" scale="0.35 0.35 0.35" color="#fff"></a-text>
+        </a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Jupiter -->
+    <a-entity id="orbit-jupiter" class="orbit-ring">
+      <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:5.6; radiusOuter:5.61"
+                material="color:#888; opacity:0.3"></a-entity>
+
+      <a-entity animation="property:rotation; to:0 360 0; dur:44000; loop:true" class="planet-orbit">
+        <a-entity position="5.6 0 0">
+          <a-sphere radius="0.5" class="clickable planet" src="textures/jupiter.jpg"
+                    data-name="♃ Jupiter (ดาวพฤหัสบดี)"
+                    data-info="ดาวแก๊สยักษ์ใหญ่ที่สุด มีพายุใหญ่ Great Red Spot ที่พัดมานานหลายร้อยปี">
+            <a-animation attribute="rotation" to="0 360 0" dur="4000" repeat="indefinite"></a-animation>
+          </a-sphere>
+          <a-text class="planet-label" value="Jupiter" align="center" position="0 0.6 0" scale="0.5 0.5 0.5" color="#fff"></a-text>
+        </a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Saturn -->
+    <a-entity id="orbit-saturn" class="orbit-ring">
+      <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:7.0; radiusOuter:7.01"
+                material="color:#888; opacity:0.3"></a-entity>
+
+      <a-entity animation="property:rotation; to:0 360 0; dur:56000; loop:true" class="planet-orbit">
+        <a-entity position="7 0 0">
+          <a-sphere radius="0.42" class="clickable planet" src="textures/saturn.jpg"
+                    data-name="♄ Saturn (ดาวเสาร์)"
+                    data-info="ดาวเสาร์ มีวงแหวนที่สวยงามทำจากน้ำแข็งและหินนับพันล้านชิ้น">
+            <a-animation attribute="rotation" to="0 360 0" dur="4500" repeat="indefinite"></a-animation>
+          </a-sphere>
+          <a-text class="planet-label" value="Saturn" align="center" position="0 0.55 0" scale="0.45 0.45 0.45" color="#fff"></a-text>
+
+          <a-ring src="textures/saturn_ring.jpg" rotation="90 0 0" radius-inner="0.55" radius-outer="0.9"
+                  material="opacity:0.9; transparent: true; side: double"></a-ring>
+        </a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Uranus -->
+    <a-entity id="orbit-uranus" class="orbit-ring">
+      <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:8.6; radiusOuter:8.61"
+                material="color:#888; opacity:0.3"></a-entity>
+
+      <a-entity animation="property:rotation; to:0 360 0; dur:68000; loop:true" class="planet-orbit">
+        <a-entity position="8.6 0 0">
+          <a-sphere radius="0.3" class="clickable planet" src="textures/uranus.jpg"
+                    data-name="⛢ Uranus (ดาวยูเรนัส)"
+                    data-info="หมุนเอียงมากที่สุด แกนหมุนเอียงเกือบขนานพื้นที่โคจร สีฟ้าจากแก๊สมีเทน">
+            <a-animation attribute="rotation" to="0 360 0" dur="7200" repeat="indefinite"></a-animation>
+          </a-sphere>
+          <a-text class="planet-label" value="Uranus" align="center" position="0 0.4 0" scale="0.4 0.4 0.4" color="#fff"></a-text>
+        </a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Neptune -->
+    <a-entity id="orbit-neptune" class="orbit-ring">
+      <a-entity rotation="-90 0 0" geometry="primitive:ring; radiusInner:10; radiusOuter:10.01"
+                material="color:#888; opacity:0.3"></a-entity>
+
+      <a-entity animation="property:rotation; to:0 360 0; dur:82000; loop:true" class="planet-orbit">
+        <a-entity position="10 0 0">
+          <a-sphere radius="0.32" class="clickable planet" src="textures/neptune.jpg"
+                    data-name="♆ Neptune (ดาวเนปจูน)"
+                    data-info="ดาวเนปจูน ดาวเคราะห์ไกลสุด มีลมที่แรงที่สุดในระบบสุริยะ ความเร็วกว่า 2,000 km/h">
+            <a-animation attribute="rotation" to="0 360 0" dur="6700" repeat="indefinite"></a-animation>
+          </a-sphere>
+          <a-text class="planet-label" value="Neptune" align="center" position="0 0.4 0" scale="0.4 0.4 0.4" color="#fff"></a-text>
+        </a-entity>
+      </a-entity>
+    </a-entity>
 
   </a-scene>
 
   <script>
-    // วางระบบสุริยะ: เมื่อกดปุ่ม จะโชว์และวางในจุดหน้ากล้อง
-    const placeBtn = document.getElementById('placeBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const solarRoot = document.getElementById('solarRoot');
+    // ซ่อน title หลัง 3 วินาที
+    setTimeout(() => {
+      document.getElementById('titleOverlay').classList.add('hidden');
+    }, 3000);
 
-    placeBtn.addEventListener('click', () => {
-      // แสดงระบบสุริยะ (ตั้งค่าตำแหน่งเล็กน้อยตามกล้อง)
-      solarRoot.setAttribute('visible', 'true');
+    // สร้างดาวเล็กๆ พราวพราว
+    const starsEl = document.getElementById('stars');
+    for (let i = 0; i < 200; i++) {
+      const star = document.createElement('a-sphere');
+      const x = (Math.random() - 0.5) * 100;
+      const y = (Math.random() - 0.5) * 100;
+      const z = (Math.random() - 0.5) * 100;
+      const radius = Math.random() * 0.05 + 0.02;
+      
+      star.setAttribute('position', `${x} ${y} ${z}`);
+      star.setAttribute('radius', radius);
+      star.setAttribute('color', '#fff');
+      star.setAttribute('material', 'shader: flat');
+      
+      // สุ่มการกระพริบ
+      const dur = Math.random() * 3000 + 2000;
+      star.setAttribute('animation', `property: material.opacity; from: 0.3; to: 1; dur: ${dur}; dir: alternate; loop: true`);
+      
+      starsEl.appendChild(star);
+    }
 
-      // เอาไปวางหน้าผู้ใช้ประมาณ 1.5 เมตร (แก้ได้ตามต้องการ)
-      const cam = document.querySelector('[camera]');
-      const camPos = cam.object3D.position;
-      const camDir = new THREE.Vector3();
-      cam.object3D.getWorldDirection(camDir);
-
-      const target = {
-        x: camPos.x + camDir.x * 1.5,
-        y: camPos.y + camDir.y * 1.5 - 0.4,
-        z: camPos.z + camDir.z * 1.5
-      };
-      solarRoot.setAttribute('position', `${target.x} ${target.y} ${target.z}`);
-      // ให้หันหน้าเข้าหาผู้ใช้
-      solarRoot.object3D.lookAt(cam.object3D.position);
+    // ระบบคลิกดาว
+    document.querySelectorAll('.clickable').forEach(obj => {
+      obj.addEventListener('click', () => {
+        document.getElementById('infoTitle').innerText = obj.dataset.name;
+        document.getElementById('infoText').innerText = obj.dataset.info;
+        document.getElementById('infoPanel').style.display = 'block';
+      });
+      
+      // เพิ่ม hover effect
+      obj.addEventListener('mouseenter', () => {
+        obj.setAttribute('scale', '1.2 1.2 1.2');
+      });
+      
+      obj.addEventListener('mouseleave', () => {
+        obj.setAttribute('scale', '1 1 1');
+      });
     });
 
-    resetBtn.addEventListener('click', () => {
-      solarRoot.setAttribute('visible', 'false');
-      solarRoot.setAttribute('position', '0 0 -2');
-      solarRoot.setAttribute('rotation', '0 0 0');
+    document.getElementById('closeInfo').onclick = () => {
+      document.getElementById('infoPanel').style.display = 'none';
+    };
+
+    // ควบคุมแสดง/ซ่อนวงโคจร
+    let orbitsVisible = true;
+    document.getElementById('toggleOrbits').onclick = () => {
+      orbitsVisible = !orbitsVisible;
+      document.querySelectorAll('.orbit-ring').forEach(ring => {
+        ring.setAttribute('visible', orbitsVisible);
+      });
+    };
+
+    // ควบคุมแสดง/ซ่อนป้ายชื่อ
+    let labelsVisible = true;
+    document.getElementById('toggleLabels').onclick = () => {
+      labelsVisible = !labelsVisible;
+      document.querySelectorAll('.planet-label').forEach(label => {
+        label.setAttribute('visible', labelsVisible);
+      });
+    };
+
+    // ควบคุมความเร็ว
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValue = document.getElementById('speedValue');
+    
+    speedSlider.addEventListener('input', (e) => {
+      const speed = parseFloat(e.target.value);
+      speedValue.textContent = speed.toFixed(1) + 'x';
+      
+      // อัพเดทความเร็วทุก animation
+      document.querySelectorAll('.planet-orbit').forEach((orbit, index) => {
+        const baseDurations = [8000, 14000, 22000, 32000, 44000, 56000, 68000, 82000];
+        const newDur = baseDurations[index] / speed;
+        const anim = orbit.getAttribute('animation');
+        orbit.setAttribute('animation', `property:rotation; to:0 360 0; dur:${newDur}; loop:true`);
+      });
     });
 
-    // แตะพื้นที่หน้าจอครั้งแรกอาจจะต้องให้ AR.js เริ่มกล้อง — บางอุปกรณ์ต้องการ user gesture
-    document.body.addEventListener('click', () => {
-      // no-op placeholder to ensure gesture for camera start on some mobile browsers
-    }, { once: true });
+    // ควบคุม sky ตอน AR
+    const scene = document.querySelector("a-scene");
+    const sky = document.getElementById("sky");
+
+    if (sky) {
+      scene.addEventListener("enter-ar", () => {
+        sky.setAttribute("visible", "false");
+      });
+
+      scene.addEventListener("exit-ar", () => {
+        sky.setAttribute("visible", "true");
+      });
+    }
+
+    // Pinch zoom component
+    AFRAME.registerComponent('pinch-zoom', {
+      schema: {
+        min: { default: 2 },
+        max: { default: 20 },
+        speed: { default: 0.015 }
+      },
+
+      init: function () {
+        this.initialDistance = 0;
+        this.zoom = this.el.object3D.position.z;
+
+        const canvas = this.el.sceneEl.canvas;
+
+        canvas.addEventListener('touchstart', (e) => {
+          if (e.touches.length == 2) {
+            this.initialDistance = this.getTouchDistance(e.touches);
+          }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+          if (e.touches.length == 2) {
+            const newDist = this.getTouchDistance(e.touches);
+            const delta = newDist - this.initialDistance;
+            this.initialDistance = newDist;
+
+            this.zoom -= delta * this.data.speed;
+            this.zoom = Math.max(this.data.min, Math.min(this.data.max, this.zoom));
+            this.el.object3D.position.z = this.zoom;
+          }
+        });
+      },
+
+      getTouchDistance: function (touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+    });
+
   </script>
 </body>
 </html>
