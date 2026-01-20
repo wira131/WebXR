@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-  <title>ระบบสุริยะ (Optimized WebXR)</title>
+  <title>ระบบสุริยะ (Settings Menu)</title>
 
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 
@@ -14,7 +14,6 @@
       font-family: 'Kanit', 'Segoe UI', Tahoma, sans-serif;
       overflow: hidden;
       background-color: #000;
-      /* สำคัญ: ป้องกัน Browser ขยับหรือซูมหน้าเว็บเอง เพื่อให้ Pinch Zoom ใน 3D ทำงานได้ */
       touch-action: none; 
     }
     
@@ -26,22 +25,125 @@
       top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none; 
       z-index: 100;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
     }
 
     #ui-layer > * { pointer-events: auto; }
 
+    /* === Gear Button (Settings) === */
+    #settingsBtn {
+      position: absolute;
+      top: 20px; 
+      right: 20px;
+      width: 48px; 
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(30, 30, 40, 0.8);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: all 0.3s ease;
+      z-index: 200;
+    }
+
+    #settingsBtn:hover {
+      background: rgba(100, 100, 255, 0.4);
+      transform: rotate(90deg);
+    }
+
+    /* === Settings Menu (Dropdown) === */
+    #settingsMenu {
+      position: absolute;
+      top: 80px; 
+      right: 20px;
+      width: 220px;
+      background: rgba(20, 20, 35, 0.95);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transform-origin: top right;
+      transform: scale(0);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      visibility: hidden;
+    }
+
+    #settingsMenu.active {
+      transform: scale(1);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .menu-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #ddd;
+      font-size: 14px;
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Toggle Switch Style */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #555;
+      transition: .4s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider { background-color: #bb86fc; }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* Custom Range Slider */
+    input[type=range] {
+      width: 100%;
+      accent-color: #bb86fc;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+    }
+
     /* === Info Panel === */
     #infoPanel {
       position: absolute;
-      top: 20px; left: 20px; right: 20px;
-      max-width: 320px;
-      margin: 0 auto;
+      top: 20px; left: 20px;
+      width: calc(100% - 100px); /* เว้นที่ให้ปุ่ม setting */
+      max-width: 300px;
       background: rgba(20, 20, 35, 0.9);
       backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 16px;
       padding: 20px;
@@ -84,36 +186,16 @@
       font-weight: 600;
     }
 
-    /* === Bottom Controls === */
-    .bottom-controls {
+    /* === AR Button (Bottom Center) === */
+    .bottom-cta {
       position: absolute;
-      bottom: 20px; left: 0; width: 100%;
+      bottom: 30px; 
+      left: 0; 
+      width: 100%;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
+      justify-content: center;
       padding-bottom: env(safe-area-inset-bottom);
     }
-
-    #controlPanel {
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(8px);
-      padding: 8px 16px;
-      border-radius: 24px;
-      display: flex;
-      gap: 10px;
-    }
-
-    .icon-btn {
-      background: rgba(255,255,255,0.15);
-      border: none;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 12px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .icon-btn.active { background: #6200ee; }
 
     #arButton {
       background: linear-gradient(135deg, #ff0080, #7928ca);
@@ -124,20 +206,11 @@
       font-size: 16px;
       font-weight: bold;
       box-shadow: 0 4px 20px rgba(255, 0, 128, 0.4);
-      margin-bottom: 5px;
     }
-
-    .mini-status {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(0,0,0,0.5);
-      padding: 4px 12px; border-radius: 20px;
-      color: rgba(255,255,255,0.8); font-size: 12px;
-    }
-    input[type=range] { accent-color: #bb86fc; height: 4px; width: 80px; }
   </style>
 
   <script>
-    // === Component: Zoom Manager (แก้ไขให้รองรับ Window Events) ===
+    // === Component: Zoom Manager ===
     AFRAME.registerComponent('ar-scale-manager', {
       schema: { min: {default: 0.05}, max: {default: 10} },
       init: function() {
@@ -146,7 +219,6 @@
         this.initialScale = 1;
         this.isPinching = false;
 
-        // ใช้ Window แทน Canvas เพื่อจับ event ได้แน่นอนกว่า
         window.addEventListener('touchstart', (e) => {
           if (e.touches.length === 2) {
             this.isPinching = true;
@@ -160,16 +232,13 @@
 
         window.addEventListener('touchmove', (e) => {
           if (this.isPinching && e.touches.length === 2) {
-            e.preventDefault(); // ป้องกันการซูมหน้าเว็บปกติ
+            e.preventDefault();
             const currentDist = Math.hypot(
               e.touches[0].pageX - e.touches[1].pageX,
               e.touches[0].pageY - e.touches[1].pageY
             );
-            
-            // เพิ่มความไวในการซูมเล็กน้อย
             const factor = currentDist / this.initialDist;
             let newScale = this.initialScale * factor;
-            
             newScale = Math.min(Math.max(newScale, this.data.min), this.data.max);
             this.wrapper.setAttribute('scale', `${newScale} ${newScale} ${newScale}`);
           }
@@ -186,17 +255,13 @@
       init: function () {
         const sceneEl = this.el;
         const sky = document.getElementById('sky');
-        const stars = document.getElementById('stars');
         const arBtn = document.getElementById('arButton');
         const wrapper = document.getElementById('solar-system-wrapper');
 
         sceneEl.addEventListener('enter-vr', () => {
           if (sceneEl.is('ar-mode')) {
             if(sky) sky.setAttribute('visible', false);
-            if(stars) stars.setAttribute('visible', false);
             if(arBtn) arBtn.style.display = 'none';
-            
-            // ปรับตำแหน่งเริ่มต้นใน AR ให้เห็นชัดขึ้น
             wrapper.setAttribute('position', '0 -0.5 -2'); 
             wrapper.setAttribute('scale', '0.2 0.2 0.2');
           }
@@ -204,9 +269,7 @@
 
         sceneEl.addEventListener('exit-vr', () => {
           if(sky) sky.setAttribute('visible', true);
-          if(stars) stars.setAttribute('visible', true);
           if(arBtn) arBtn.style.display = 'block';
-          
           wrapper.setAttribute('position', '0 0 0');
           wrapper.setAttribute('scale', '1 1 1');
         });
@@ -218,25 +281,49 @@
 <body>
 
   <div id="ui-layer">
+    
+    <button id="settingsBtn">⚙️</button>
+
+    <div id="settingsMenu">
+      
+      <div class="menu-item toggle-row">
+        <span>แสดงวงโคจร</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleOrbits" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="menu-item toggle-row">
+        <span>แสดงชื่อดาว</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleLabels" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <hr style="width: 100%; border: 0; border-top: 1px solid rgba(255,255,255,0.1);">
+
+      <div class="menu-item">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span>ความเร็วการหมุน</span>
+          <span id="speedValue" style="color:#bb86fc">1.0x</span>
+        </div>
+        <input type="range" id="speedSlider" min="0" max="5" step="0.5" value="1">
+      </div>
+
+    </div>
+
     <div id="infoPanel">
       <h3 id="infoTitle">ชื่อดาว</h3>
       <p id="infoText">รายละเอียด...</p>
       <button id="closeInfo">ปิดหน้าต่าง</button>
     </div>
 
-    <div class="bottom-controls">
-      <div class="mini-status">
-        <span>ความเร็ว: <span id="speedValue">1.0x</span></span>
-        <input type="range" id="speedSlider" min="0" max="5" step="0.5" value="1">
-      </div>
-
-      <div id="controlPanel">
-        <button id="toggleOrbits" class="icon-btn active">วงโคจร</button>
-        <button id="toggleLabels" class="icon-btn active">ชื่อดาว</button>
-      </div>
-
+    <div class="bottom-cta">
       <button id="arButton">✨ เข้าสู่โหมด AR</button>
     </div>
+
   </div>
 
   <a-scene
@@ -253,8 +340,6 @@
     </a-assets>
 
     <a-sky id="sky" src="#skyTexture"></a-sky>
-    
-    <a-entity id="stars"></a-entity>
 
     <a-entity light="type: ambient; intensity: 0.8"></a-entity>
     <a-entity light="type: point; intensity: 1.5; distance: 50; decay: 2" position="0 0 0"></a-entity>
@@ -313,9 +398,11 @@
                       data-info="บ้านของเรา ดาวเคราะห์เพียงดวงเดียวที่เรารู้ว่ามีสิ่งมีชีวิตอาศัยอยู่ได้">
             </a-sphere>
             <a-text class="planet-label" value="Earth" align="center" position="0 0.45 0" scale="0.6 0.6 0.6" side="double"></a-text>
+            
             <a-entity animation="property:rotation; to:0 360 0; dur:3000; loop:true; easing:linear">
                <a-sphere radius="0.05" position="0.3 0 0" src="textures/moon.jpg" color="#ddd" segments-width="8" segments-height="8"></a-sphere>
             </a-entity>
+
           </a-entity>
         </a-entity>
       </a-entity>
@@ -406,17 +493,32 @@
       scene.enterAR();
     });
 
+    // Toggle Settings Menu
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsMenu = document.getElementById('settingsMenu');
+
+    settingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsMenu.classList.toggle('active');
+      // หมุนปุ่ม Settings เล็กน้อยเมื่อกด
+      settingsBtn.style.transform = settingsMenu.classList.contains('active') ? 'rotate(90deg)' : 'rotate(0deg)';
+    });
+
+    // Close Menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!settingsMenu.contains(e.target) && e.target !== settingsBtn) {
+        settingsMenu.classList.remove('active');
+        settingsBtn.style.transform = 'rotate(0deg)';
+      }
+    });
+
     // Info Panel Logic
     const infoPanel = document.getElementById('infoPanel');
     const infoTitle = document.getElementById('infoTitle');
     const infoText = document.getElementById('infoText');
 
-    // ใช้ Event Delegation หรือผูกกับ Class Clickable โดยตรง
-    // หมายเหตุ: เราเปลี่ยนให้ตัวรับคลิก (clickable) เป็น Hitbox ใสๆ รอบดาว
-    // ดังนั้นเราต้องดึงข้อมูลจากตัวดาวจริง (planet-mesh) ที่อยู่ข้างๆ กัน
     document.querySelectorAll('.clickable').forEach(el => {
       el.addEventListener('click', function(evt) {
-        // หาตัว Mesh ที่เก็บข้อมูล (พี่น้องของ Hitbox)
         const planetMesh = this.parentElement.querySelector('.planet-mesh');
         if (!planetMesh) return;
 
@@ -426,7 +528,6 @@
         infoPanel.style.display = 'block';
         requestAnimationFrame(() => infoPanel.classList.add('active'));
         
-        // Animation เด้งดึ๋ง
         const originalScale = planetMesh.object3D.scale.clone();
         planetMesh.object3D.scale.multiplyScalar(1.3);
         setTimeout(() => {
@@ -441,24 +542,22 @@
     });
 
     // Toggle Orbits
-    let orbitsVisible = true;
-    document.getElementById('toggleOrbits').onclick = function() {
-      orbitsVisible = !orbitsVisible;
+    const toggleOrbits = document.getElementById('toggleOrbits');
+    toggleOrbits.addEventListener('change', function() {
+      const visible = this.checked;
       document.querySelectorAll('.orbit-ring').forEach(ring => {
-        ring.setAttribute('visible', orbitsVisible);
+        ring.setAttribute('visible', visible);
       });
-      this.classList.toggle('active');
-    };
+    });
 
     // Toggle Labels
-    let labelsVisible = true;
-    document.getElementById('toggleLabels').onclick = function() {
-      labelsVisible = !labelsVisible;
+    const toggleLabels = document.getElementById('toggleLabels');
+    toggleLabels.addEventListener('change', function() {
+      const visible = this.checked;
       document.querySelectorAll('.planet-label').forEach(label => {
-        label.setAttribute('visible', labelsVisible);
+        label.setAttribute('visible', visible);
       });
-      this.classList.toggle('active');
-    };
+    });
 
     // Speed Slider
     const speedSlider = document.getElementById('speedSlider');
@@ -479,36 +578,10 @@
           orbit.removeAttribute('animation');
         } else {
           const newDur = originalDur / speed;
-          // ใช้ easing linear เพื่อให้หมุนต่อเนื่องไม่กระตุกเวลาเปลี่ยนความเร็ว
           orbit.setAttribute('animation', `property:rotation; to:0 360 0; dur:${newDur}; loop:true; easing:linear`);
         }
       });
     });
-
-    // Generate Stars Optimized (ลดจำนวนลง และเอา Animation ออก)
-    const starsEl = document.getElementById('stars');
-    // ลดจำนวนจาก 500 เหลือ 150 เพื่อประสิทธิภาพบนมือถือ
-    const starCount = 150; 
-    
-    for (let i = 0; i < starCount; i++) {
-      const star = document.createElement('a-entity'); // ใช้ Entity ว่างเปล่า + Geometry/Material แบบ Basic
-      const x = (Math.random() - 0.5) * 150;
-      const y = (Math.random() - 0.5) * 150;
-      const z = (Math.random() - 0.5) * 150;
-      
-      star.setAttribute('position', `${x} ${y} ${z}`);
-      
-      // ใช้ Primitive ง่ายๆ หรือ Plane เล็กๆ แทน Sphere
-      star.setAttribute('geometry', 'primitive: plane; width: 0.15; height: 0.15');
-      star.setAttribute('material', 'shader: flat; color: #FFF; opacity: 0.8');
-      
-      // Billboarding (ให้หันหาคนตลอด)
-      star.setAttribute('look-at', '[camera]');
-
-      // เอา Animation กระพริบออก เพราะทำให้ FPS ตกเวลาเรนเดอร์เยอะๆ
-      
-      starsEl.appendChild(star);
-    }
   </script>
 </body>
 </html>
