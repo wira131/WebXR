@@ -3,96 +3,61 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>ระบบสุริยะ (Fix Focus & Settings)</title>
+  <title>ระบบสุริยะ (AR Description Fix)</title>
 
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 
   <style>
     /* === Global Styles === */
     html, body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
+      width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
       background-color: #000;
       font-family: 'Kanit', 'Segoe UI', Tahoma, sans-serif;
       touch-action: none; 
     }
 
     a-scene {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 0;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
     }
 
     .a-enter-vr-button { display: none !important; }
 
     /* === UI Overlay === */
     #ui-layer {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none;
-      z-index: 100;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 100;
     }
-
     #ui-layer > * { pointer-events: auto; }
 
     /* === Gear Button === */
     #settingsBtn {
-      position: absolute;
-      top: 20px; right: 20px;
-      width: 48px; height: 48px;
-      border-radius: 50%;
-      background: rgba(30, 30, 40, 0.8);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: white;
-      font-size: 24px;
-      cursor: pointer;
+      position: absolute; top: 20px; right: 20px;
+      width: 48px; height: 48px; border-radius: 50%;
+      background: rgba(30, 30, 40, 0.8); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.3); color: white;
+      font-size: 24px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      transition: all 0.3s ease;
-      z-index: 200;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: all 0.3s ease; z-index: 200;
     }
-
     #settingsBtn:hover {
-      background: rgba(100, 100, 255, 0.4);
-      transform: rotate(90deg);
+      background: rgba(100, 100, 255, 0.4); transform: rotate(90deg);
     }
 
     /* === Settings Menu === */
     #settingsMenu {
-      position: absolute;
-      top: 80px; right: 20px;
-      width: 240px; /* ขยายความกว้างนิดหน่อย */
-      background: rgba(20, 20, 35, 0.95);
-      backdrop-filter: blur(12px);
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 16px;
-      display: flex; flex-direction: column; gap: 12px;
-      transform-origin: top right;
-      transform: scale(0);
-      opacity: 0;
-      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      visibility: hidden;
+      position: absolute; top: 80px; right: 20px; width: 240px;
+      background: rgba(20, 20, 35, 0.95); backdrop-filter: blur(12px);
+      border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 16px; display: flex; flex-direction: column; gap: 12px;
+      transform-origin: top right; transform: scale(0); opacity: 0;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); visibility: hidden;
     }
-    #settingsMenu.active {
-      transform: scale(1); opacity: 1; visibility: visible;
-    }
-    .menu-item {
-      display: flex; flex-direction: column; gap: 6px;
-      color: #ddd; font-size: 14px;
-    }
-    .toggle-row {
-      display: flex; justify-content: space-between; align-items: center;
-    }
+    #settingsMenu.active { transform: scale(1); opacity: 1; visibility: visible; }
+    .menu-item { display: flex; flex-direction: column; gap: 6px; color: #ddd; font-size: 14px; }
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; }
 
     /* Switch Style */
-    .switch {
-      position: relative; display: inline-block; width: 44px; height: 24px;
-    }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
       position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
@@ -100,8 +65,7 @@
     }
     .slider:before {
       position: absolute; content: ""; height: 18px; width: 18px;
-      left: 3px; bottom: 3px; background-color: white;
-      transition: .4s; border-radius: 50%;
+      left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
     }
     input:checked + .slider { background-color: #bb86fc; }
     input:checked + .slider:before { transform: translateX(20px); }
@@ -110,72 +74,66 @@
       background: rgba(255,255,255,0.2); border-radius: 2px;
     }
 
-    /* === Preview Overlay (MODIFIED) === */
+    /* === Preview Overlay === */
     #previewOverlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      
-      /* --- แก้ไขตรงนี้ (เอา Blur ออก / ใช้ Gradient แทน) --- */
-      /* เดิม: background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); */
-      
-      /* ใหม่: ตรงกลางใส (เห็นดาวชัด) ขอบๆ มืด (อ่านตัวหนังสือชัด) */
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      /* Default background for Normal Mode */
       background: radial-gradient(circle at center, rgba(0,0,0,0) 20%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0.95) 100%);
-      
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      z-index: 300;
-      pointer-events: auto;
+      display: none; flex-direction: column; align-items: center; justify-content: flex-end;
+      z-index: 300; pointer-events: auto;
+    }
+    
+    /* Specific style for AR Mode */
+    #previewOverlay.ar-mode-style {
+       background: transparent; /* No dark background in AR */
+       justify-content: flex-end; /* Push content to bottom */
     }
     
     #previewOverlay.active { display: flex; }
 
     .preview-controls {
-      margin-bottom: 50px;
-      text-align: center;
-      pointer-events: auto;
-      width: 100%;
-      padding: 0 20px;
-      box-sizing: border-box;
+      margin-bottom: 50px; text-align: center; pointer-events: auto;
+      width: 100%; padding: 0 20px; box-sizing: border-box;
+    }
+    
+    /* Add background to controls in AR so text is readable */
+    #previewOverlay.ar-mode-style .preview-controls {
+        background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0));
+        padding-bottom: 60px;
+        padding-top: 40px;
     }
 
     #previewTitle {
-      color: #fff;
-      font-size: 2.2rem;
-      font-weight: bold;
-      text-shadow: 0 2px 10px rgba(187, 134, 252, 0.8); /* เพิ่มเงาให้ตัวหนังสือเด้ง */
-      margin-bottom: 10px;
+      color: #fff; font-size: 2.2rem; font-weight: bold;
+      text-shadow: 0 2px 10px rgba(187, 134, 252, 0.8); margin-bottom: 10px;
     }
 
     #previewDesc {
-      color: #ccc;
-      margin-bottom: 20px;
-      max-width: 600px;
-      margin-left: auto; margin-right: auto;
-      font-size: 1rem;
-      line-height: 1.5;
-      background: rgba(0, 0, 0, 0.3); /* พื้นหลังจางๆ เฉพาะตัวหนังสือ */
-      padding: 10px 20px;
-      border-radius: 12px;
-      /* backdrop-filter: blur(4px); สามารถใส่เบลอเฉพาะตรงนี้ได้ถ้าต้องการ */
+      color: #ccc; margin-bottom: 20px; max-width: 600px;
+      margin-left: auto; margin-right: auto; font-size: 1rem; line-height: 1.5;
+      background: rgba(0, 0, 0, 0.5); padding: 15px 20px; border-radius: 12px;
+      backdrop-filter: blur(5px);
+    }
+
+    #rotateHint {
+        font-size: 0.8rem; color: #888; margin-top: -10px; margin-bottom: 15px;
     }
 
     #closePreviewBtn {
       background: linear-gradient(135deg, #ff4b1f, #ff9068);
       color: white; border: none; padding: 12px 30px;
       border-radius: 30px; font-size: 16px; font-weight: bold;
-      box-shadow: 0 4px 15px rgba(255, 75, 31, 0.4);
-      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 75, 31, 0.4); cursor: pointer;
     }
 
     /* Bottom AR Button */
     .bottom-cta {
-      position: absolute; bottom: 60px; left: 0; width: 100%;
+      position: absolute; bottom: 80px; left: 0; width: 100%;
       display: flex; justify-content: center;
-      padding-bottom: env(safe-area-inset-bottom);
+      padding-bottom: env(safe-area-inset-bottom); pointer-events: none;
     }
     #arButton {
+      pointer-events: auto;
       background: linear-gradient(135deg, #ff0080, #7928ca);
       color: white; border: none; padding: 14px 40px;
       border-radius: 30px; font-size: 16px; font-weight: bold;
@@ -217,19 +175,32 @@
         const sky = document.getElementById('sky');
         const arBtn = document.getElementById('arButton');
         const wrapper = document.getElementById('solar-system-wrapper');
+        
+        // Handle Entering AR/VR Mode
         sceneEl.addEventListener('enter-vr', () => {
           if (sceneEl.is('ar-mode')) {
             if(sky) sky.setAttribute('visible', false);
             if(arBtn) arBtn.style.display = 'none';
             wrapper.setAttribute('position', '0 -0.5 -2'); 
             wrapper.setAttribute('scale', '0.2 0.2 0.2');
+            
+            // Sync checkbox state
+            const toggleSky = document.getElementById('toggleSky');
+            if(toggleSky) toggleSky.checked = true;
           }
         });
+
         sceneEl.addEventListener('exit-vr', () => {
+          const toggleSky = document.getElementById('toggleSky');
+          if(toggleSky) toggleSky.checked = false;
+          
           if(sky) sky.setAttribute('visible', true);
           if(arBtn) arBtn.style.display = 'block';
           wrapper.setAttribute('position', '0 0 0');
           wrapper.setAttribute('scale', '1 1 1');
+          
+          // Reset UI Style
+          document.getElementById('previewOverlay').classList.remove('ar-mode-style');
         });
       }
     });
@@ -266,6 +237,14 @@
         </label>
       </div>
 
+      <div class="menu-item toggle-row">
+        <span style="color:#bb86fc; font-weight:bold;">ซ่อนพื้นหลัง</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleSky">
+          <span class="slider"></span>
+        </label>
+      </div>
+
       <hr style="width: 100%; border: 0; border-top: 1px solid rgba(255,255,255,0.1);">
       <div class="menu-item">
         <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
@@ -280,7 +259,7 @@
       <div class="preview-controls">
         <h2 id="previewTitle">ดาว...</h2>
         <p id="previewDesc">รายละเอียด...</p>
-        <p style="font-size:0.8rem; color:#888; margin-top:-10px; margin-bottom:15px;">(ใช้นิ้วเลื่อนเพื่อหมุนดาว)</p>
+        <p id="rotateHint">(ใช้นิ้วเลื่อนเพื่อหมุนดาว)</p>
         <button id="closePreviewBtn">ปิดหน้าต่าง</button>
       </div>
     </div>
@@ -463,7 +442,9 @@
     const previewMesh = document.getElementById('preview-planet-mesh');
     const previewTitle = document.getElementById('previewTitle');
     const previewDesc = document.getElementById('previewDesc');
+    const rotateHint = document.getElementById('rotateHint');
     const solarSystem = document.getElementById('solar-system-wrapper');
+    const sceneEl = document.querySelector('a-scene');
 
     let isPreviewing = false;
     let startX = 0;
@@ -486,35 +467,56 @@
         const name = planetMesh.getAttribute('data-name');
         const info = planetMesh.getAttribute('data-info');
 
-        previewMesh.setAttribute('src', textureSrc);
-        previewMesh.setAttribute('color', color);
+        // Update Text
         previewTitle.innerText = name;
         previewDesc.innerText = info;
-
-        // Apply toggle state immediately
         previewDesc.style.display = toggleDesc.checked ? 'block' : 'none';
 
-        previewOverlay.classList.add('active');
-        previewRig.setAttribute('visible', true);
-        solarSystem.setAttribute('visible', false);
+        // Update 3D Model (Only used in Normal Mode)
+        previewMesh.setAttribute('src', textureSrc);
+        previewMesh.setAttribute('color', color);
+
+        // --- KEY LOGIC CHANGE FOR AR ---
+        const isAR = sceneEl.is('ar-mode');
+        
+        if (isAR) {
+            // โหมด AR: แสดงแค่ Text Overlay แต่ไม่ซ่อน Solar System
+            // และปรับ Style ของ Overlay ให้โปร่งใส
+            previewOverlay.classList.add('active', 'ar-mode-style');
+            
+            // ซ่อน Preview Rig (เพราะใน AR มันคุมตำแหน่งยาก)
+            previewRig.setAttribute('visible', false); 
+            // แสดง Solar System ไว้เหมือนเดิม ให้คนเห็นว่าดาวอยู่ตรงไหน
+            solarSystem.setAttribute('visible', true); 
+            // ซ่อนคำแนะนำหมุน เพราะเราไม่ได้โชว์โมเดลเดี่ยว
+            rotateHint.style.display = 'none';
+        } else {
+            // โหมดปกติ (VR/Desktop): ทำเหมือนเดิม
+            previewOverlay.classList.add('active');
+            previewOverlay.classList.remove('ar-mode-style');
+            previewRig.setAttribute('visible', true);
+            solarSystem.setAttribute('visible', false);
+            rotateHint.style.display = 'block';
+        }
+
         isPreviewing = true;
       });
     });
 
     // Close Preview
     document.getElementById('closePreviewBtn').addEventListener('click', () => {
-      previewOverlay.classList.remove('active');
+      previewOverlay.classList.remove('active', 'ar-mode-style');
       previewRig.setAttribute('visible', false);
-      solarSystem.setAttribute('visible', true);
+      solarSystem.setAttribute('visible', true); // Show world again
       isPreviewing = false;
     });
 
-    // Drag to Rotate Preview
+    // Drag to Rotate Preview (Only Normal Mode)
     document.addEventListener('touchstart', (e) => {
-      if(isPreviewing) startX = e.touches[0].pageX;
+      if(isPreviewing && !sceneEl.is('ar-mode')) startX = e.touches[0].pageX;
     });
     document.addEventListener('touchmove', (e) => {
-      if(isPreviewing && e.touches.length === 1) { 
+      if(isPreviewing && !sceneEl.is('ar-mode') && e.touches.length === 1) { 
         const currentX = e.touches[0].pageX;
         const deltaX = currentX - startX;
         previewMesh.object3D.rotation.y += deltaX * 0.01;
@@ -536,6 +538,15 @@
       document.querySelectorAll('.planet-label').forEach(label => {
         label.setAttribute('visible', visible);
       });
+    });
+
+    // Toggle Camera Mode (Hide Sky)
+    document.getElementById('toggleSky').addEventListener('change', function() {
+      const isCameraMode = this.checked;
+      const sky = document.getElementById('sky');
+      if(sky) {
+        sky.setAttribute('visible', !isCameraMode);
+      }
     });
 
     // Speed Slider
