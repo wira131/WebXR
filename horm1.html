@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>สื่อการเรียนรู้ด้วย WebAR - ระบบสุริยะและธาตุเคมี</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(135deg, #0c0c1e 0%, #1a1a3e 50%, #0d1b2a 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            cursor: pointer;
+            position: relative;
+            touch-action: manipulation;
+        }
+
+        /* ดาวพื้นหลัง */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px rgba(255,255,255,0.8); }
+        }
+
+        /* เนื้อหาหลัก */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 15px;
+        }
+
+        /* หัวข้อหลัก */
+        .hero-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .webar-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 2rem;
+            font-weight: 700;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+            margin-bottom: 8px;
+            background: linear-gradient(to right, #00d4ff, #7b2cbf, #ff006e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 0.95rem;
+            font-weight: 300;
+            line-height: 1.4;
+        }
+
+        /* ระบบสุริยะ - ปรับสำหรับมือถือ */
+        .solar-system {
+            margin: 30px 0;
+            position: relative;
+            height: 350px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sun {
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #ffd700 0%, #ff8c00 50%, #ff4500 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 40px #ff8c00, 0 0 60px #ff4500;
+            position: absolute;
+            animation: rotate 20s linear infinite;
+            z-index: 5;
+        }
+
+        .planet-orbit {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .planet {
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: transform 0.3s;
+        }
+
+        .planet:active {
+            transform: scale(1.3);
+        }
+
+        .mercury { width: 12px; height: 12px; background: linear-gradient(135deg, #8c8c8c, #4a4a4a); }
+        .venus { width: 22px; height: 22px; background: linear-gradient(135deg, #e6b800, #b8860b); }
+        .earth { width: 24px; height: 24px; background: linear-gradient(135deg, #4a90e2, #1a5276); box-shadow: 0 0 15px rgba(74, 144, 226, 0.6); }
+        .mars { width: 18px; height: 18px; background: linear-gradient(135deg, #e74c3c, #922b21); }
+        .jupiter { width: 45px; height: 45px; background: linear-gradient(135deg, #d4a373, #a67c52); }
+        .saturn { width: 38px; height: 38px; background: linear-gradient(135deg, #f4d03f, #b7950b); position: relative; }
+        .saturn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 55px;
+            height: 12px;
+            border: 2px solid rgba(244, 208, 63, 0.6);
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(244, 208, 63, 0.4);
+        }
+
+        .orbit-1 { width: 120px; height: 120px; animation: rotate 8s linear infinite; }
+        .orbit-2 { width: 170px; height: 170px; animation: rotate 12s linear infinite; }
+        .orbit-3 { width: 220px; height: 220px; animation: rotate 16s linear infinite; }
+        .orbit-4 { width: 270px; height: 270px; animation: rotate 20s linear infinite; }
+        .orbit-5 { width: 340px; height: 340px; animation: rotate 28s linear infinite; }
+        .orbit-6 { width: 410px; height: 410px; animation: rotate 36s linear infinite; }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .planet-pos {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* ตารางธาตุ */
+        .elements-section {
+            margin: 40px 0;
+        }
+
+        .section-title {
+            color: #00d4ff;
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .periodic-table {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 6px;
+            max-width: 800px;
+            margin: 0 auto;
+            overflow-x: auto;
+            padding: 10px;
+        }
+
+        .element {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .element:active {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+
+        .element-number {
+            font-size: 0.5rem;
+            opacity: 0.7;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+        }
+
+        .element-symbol {
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 1px;
+        }
+
+        .element-name {
+            font-size: 0.5rem;
+            opacity: 0.9;
+            text-align: center;
+            line-height: 1;
+        }
+
+        /* หินและแร่ธาตุ */
+        .rocks-section {
+            margin: 40px 0;
+        }
+
+        .rocks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .rock-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 15px 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .rock-card:active {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .rock-icon {
+            width: 55px;
+            height: 55px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .rock-name {
+            color: white;
+            font-size: 0.95rem;
+            margin-bottom: 3px;
+            font-weight: bold;
+        }
+
+        .rock-desc {
+            color: #a0a0a0;
+            font-size: 0.75rem;
+            line-height: 1.3;
+        }
+
+        /* คำแนะนำการคลิก */
+        .click-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 212, 255, 0.2);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            font-size: 0.85rem;
+            animation: bounce 2s infinite;
+            z-index: 100;
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+            white-space: nowrap;
+            max-width: 90vw;
+            text-align: center;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-5px); }
+        }
+
+        /* เอฟเฟกต์แสงเรือง */
+        .glow {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(0,212,255,0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .glow-1 { top: 5%; left: -100px; }
+        .glow-2 { bottom: 5%; right: -100px; background: radial-gradient(circle, rgba(123,44,191,0.15) 0%, transparent 70%); }
+
+        /* Responsive สำหรับมือถือ */
+        @media (max-width: 480px) {
+            h1 { font-size: 1.6rem; }
+            .subtitle { font-size: 0.85rem; }
+            
+            .solar-system { 
+                height: 300px; 
+                transform: scale(0.9);
+            }
+            
+            .periodic-table { 
+                grid-template-columns: repeat(8, minmax(35px, 1fr));
+                gap: 4px;
+                overflow-x: auto;
+            }
+            
+            .element-symbol { font-size: 0.85rem; }
+            .element-name { font-size: 0.45rem; }
+            
+            .rocks-grid { 
+                grid-template-columns: repeat(2, 1fr); 
+                gap: 10px;
+            }
+            
+            .click-hint {
+                font-size: 0.8rem;
+                padding: 10px 15px;
+            }
+        }
+
+        /* การหมุนหน้าจอแนวนอนบนมือถือ */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .solar-system { height: 250px; }
+            .container { padding: 15px; }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body onclick="window.location.href='horm.html'">
+    <!-- ดาวพื้นหลัง -->
+    <div class="stars" id="stars"></div>
+    
+    <!-- แสงเรือง -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <div class="container">
+        <!-- ส่วนหัว -->
+        <div class="hero-section">
+          
+            <h1>สื่อการเรียนรู้</h1>
+            <p class="subtitle">เรียนรู้ระบบสุริยะ ธาตุเคมี และหินแร่ธาตุผ่านเทคโนโลยี AR</p>
+        </div>
+
+        <!-- ระบบสุริยะ -->
+        <div class="solar-system">
+            <div class="sun"></div>
+            
+            <div class="planet-orbit orbit-1">
+                <div class="planet-pos">
+                    <div class="planet mercury" title="ดาวพุธ"></div>
+                </div>
+            </div>
+            
+            <div class="planet-orbit orbit-2">
+                <div class="planet-pos">
+                    <div class="planet venus" title="ดาวศุกร์"></div>
+                </div>
+            </div>
+            
+            <div class="planet-orbit orbit-3">
+                <div class="planet-pos">
+                    <div class="planet earth" title="โลก"></div>
+                </div>
+            </div>
+            
+            <div class="planet-orbit orbit-4">
+                <div class="planet-pos">
+                    <div class="planet mars" title="ดาวอังคาร"></div>
+                </div>
+            </div>
+            
+            <div class="planet-orbit orbit-5">
+                <div class="planet-pos">
+                    <div class="planet jupiter" title="ดาวพฤหัสบดี"></div>
+                </div>
+            </div>
+            
+            <div class="planet-orbit orbit-6">
+                <div class="planet-pos">
+                    <div class="planet saturn" title="ดาวเสาร์"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ตารางธาตุ -->
+        <div class="elements-section">
+            <h2 class="section-title">ตารางธาตุ (Periodic Table)</h2>
+            <div class="periodic-table">
+                <div class="element" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                    <span class="element-number">1</span>
+                    <span class="element-symbol">H</span>
+                    <span class="element-name">ไฮโดรเจน</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #3498db, #2980b9); grid-column: 8;">
+                    <span class="element-number">2</span>
+                    <span class="element-symbol">He</span>
+                    <span class="element-name">ฮีเลียม</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                    <span class="element-number">3</span>
+                    <span class="element-symbol">Li</span>
+                    <span class="element-name">ลิเทียม</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #f39c12, #d68910);">
+                    <span class="element-number">4</span>
+                    <span class="element-symbol">Be</span>
+                    <span class="element-name">เบอริลเลียม</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                    <span class="element-number">5</span>
+                    <span class="element-symbol">B</span>
+                    <span class="element-name">บอรอน</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                    <span class="element-number">6</span>
+                    <span class="element-symbol">C</span>
+                    <span class="element-name">คาร์บอน</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                    <span class="element-number">7</span>
+                    <span class="element-symbol">N</span>
+                    <span class="element-name">ไนโตรเจน</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                    <span class="element-number">8</span>
+                    <span class="element-symbol">O</span>
+                    <span class="element-name">ออกซิเจน</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                    <span class="element-number">11</span>
+                    <span class="element-symbol">Na</span>
+                    <span class="element-name">โซเดียม</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                    <span class="element-number">12</span>
+                    <span class="element-symbol">Mg</span>
+                    <span class="element-name">แมกนีเซียม</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #1abc9c, #16a085);">
+                    <span class="element-number">13</span>
+                    <span class="element-symbol">Al</span>
+                    <span class="element-name">อะลูมิเนียม</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #1abc9c, #16a085);">
+                    <span class="element-number">14</span>
+                    <span class="element-symbol">Si</span>
+                    <span class="element-name">ซิลิคอน</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #1abc9c, #16a085);">
+                    <span class="element-number">26</span>
+                    <span class="element-symbol">Fe</span>
+                    <span class="element-name">เหล็ก</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #e67e22, #d35400);">
+                    <span class="element-number">29</span>
+                    <span class="element-symbol">Cu</span>
+                    <span class="element-name">ทองแดง</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #e67e22, #d35400);">
+                    <span class="element-number">47</span>
+                    <span class="element-symbol">Ag</span>
+                    <span class="element-name">เงิน</span>
+                </div>
+                <div class="element" style="background: linear-gradient(135deg, #f1c40f, #f39c12);">
+                    <span class="element-number">79</span>
+                    <span class="element-symbol">Au</span>
+                    <span class="element-name">ทอง</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- หินและแร่ธาตุ -->
+        <div class="rocks-section">
+            <h2 class="section-title">หินและแร่ธาตุ</h2>
+            <div class="rocks-grid">
+                <div class="rock-card">
+                    <div class="rock-icon rock-1">🪨</div>
+                    <div class="rock-name">หินแกรนิต</div>
+                    <div class="rock-desc">หินอัคนีแทรกซ้อน แข็งแรงทนทาน</div>
+                </div>
+                <div class="rock-card">
+                    <div class="rock-icon rock-2">💎</div>
+                    <div class="rock-name">ควอตซ์</div>
+                    <div class="rock-desc">แร่ธาตุซิลิกา ใส แข็งมาก</div>
+                </div>
+                <div class="rock-card">
+                    <div class="rock-icon rock-3">🔷</div>
+                    <div class="rock-name">ไพไรต์</div>
+                    <div class="rock-desc">แร่เหล็กซัลไฟด์ สีทองเหลือง</div>
+                </div>
+                <div class="rock-card">
+                    <div class="rock-icon rock-4">🏔️</div>
+                    <div class="rock-name">หินปูน</div>
+                    <div class="rock-desc">หินตะกอน ประกอบด้วยแคลไซต์</div>
+                </div>
+                <div class="rock-card">
+                    <div class="rock-icon rock-5">🔮</div>
+                    <div class="rock-name">อเมทิสต์</div>
+                    <div class="rock-desc">ควอตซ์สีม่วง แร่มีค่า</div>
+                </div>
+                <div class="rock-card">
+                    <div class="rock-icon rock-6">⚗️</div>
+                    <div class="rock-name">แคลไซต์</div>
+                    <div class="rock-desc">แคลเซียมคาร์บอเนต มีความวาว</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- คำแนะนำ -->
+    <div class="click-hint">
+        👆 แตะที่หน้าจอเพื่อเริ่มต้นการเรียนรู้ด้วย WebAR
+    </div>
+
+    <script>
+        // สร้างดาวในพื้นหลังแบบสุ่ม - ปรับจำนวนให้เหมาะกับมือถือ
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            // ลดจำนวนดาวบนมือถือเพื่อประสิทธิภาพ
+            const isMobile = window.innerWidth <= 768;
+            const numberOfStars = isMobile ? 50 : 100;
+            
+            for (let i = 0; i < numberOfStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * (isMobile ? 2 : 3) + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 2 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        createStars();
+
+        // เอฟเฟกต์เมาส์เคลื่อนที่ (เฉพาะเดสก์ท็อป)
+        if (window.innerWidth > 768) {
+            document.addEventListener('mousemove', (e) => {
+                const x = e.clientX / window.innerWidth;
+                const y = e.clientY / window.innerHeight;
+                
+                document.body.style.background = `
+                    linear-gradient(
+                        ${135 + (x * 20)}deg, 
+                        #0c0c1e 0%, 
+                        #1a1a3e ${50 + (y * 10)}%, 
+                        #0d1b2a 100%
+                    )
+                `;
+            });
+        }
+
+        // ป้องกัน double-tap zoom บน iOS
+        document.addEventListener('dblclick', function(event) {
+            event.preventDefault();
+        }, { passive: false });
+    </script>
+</body>
+</html>

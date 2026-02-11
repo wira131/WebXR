@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Periodic Table - ธาตุของแข็ง (AR Support)</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1a2035; font-family: 'Sarabun', sans-serif; }
+        
+        #info {
+            position: absolute; 
+            bottom: 30px;
+            width: 100%;
+            text-align: center; color: white;
+            pointer-events: none; text-shadow: 1px 1px 2px black; z-index: 10;
+            font-size: 18px;
+        }
+
+        canvas { display: block; }
+
+        /* ปุ่ม AR - อยู่ล่างขวาเสมอ */
+        #arButton {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 100;
+            pointer-events: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: background 0.3s;
+        }
+
+        #arButton:hover {
+            background: #45a049;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="info">คลิกที่ธาตุเพื่อไปหน้ารายละเอียด | หมุนเมาส์เพื่อดูรอบๆ <br> (ตารางธาตุ 3D เฉพาะธาตุที่เป็นของแข็ง)</div>
+    
+    <!-- ปุ่ม AR อยู่ใน HTML ตั้งแต่เริ่ม -->
+    <button id="arButton">เข้าสู่โหมด AR</button>
+    
+    <div id="container"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { ARButton } from 'three/addons/webxr/ARButton.js';
+
+        const categories = {
+            "alkali": { color: "#FFC080", label: "โลหะอัลคาไล" },
+            "alkaline-earth": { color: "#FFD700", label: "โลหะอัลคาไลน์เอิร์ท" },
+            "transition": { color: "#9370DB", label: "โลหะทรานซิชัน" },
+            "post-transition": { color: "#FFB6C1", label: "โลหะหลังทรานซิชัน" },
+            "metalloid": { color: "#D8BFD8", label: "กึ่งโลหะ" },
+            "nonmetal": { color: "#FF69B4", label: "อโลหะอื่น ๆ" },
+            "halogen": { color: "#90EE90", label: "ฮาโลเจน" },
+            "lanthanoid": { color: "#F0E68C", label: "กลุ่มแลนทาไนด์" },
+            "actinoid": { color: "#87CEFA", label: "กลุ่มแอกทิไนด์" }
+        };
+
+        const table = [
+            // แถวที่ 2
+            ["Li", "3", 1, 2, "alkali", "li.html"], 
+            ["Be", "4", 2, 2, "alkaline-earth", "be.html"],                        
+            ["B", "5", 13, 2, "metalloid", "b.html"], 
+            ["C", "6", 14, 2, "nonmetal", "c.html"], 
+            
+            // แถวที่ 3
+            ["Na", "11", 1, 3, "alkali", "na.html"], 
+            ["Mg", "12", 2, 3, "alkaline-earth", "mg.html"],
+            ["Al", "13", 13, 3, "post-transition", "ai.html"], 
+            ["Si", "14", 14, 3, "metalloid", "si.html"], 
+            ["P", "15", 15, 3, "nonmetal", "p.html"], 
+            ["S", "16", 16, 3, "nonmetal", "s.html"], 
+            
+            // แถวที่ 4
+            ["K", "19", 1, 4, "alkali", "k.html"], 
+            ["Ca", "20", 2, 4, "alkaline-earth", "ca.html"],
+            ["Sc", "21", 3, 4, "transition", "sc.html"], 
+            ["Ti", "22", 4, 4, "transition", "ti.html"], 
+            ["V", "23", 5, 4, "transition", "v.html"], 
+            ["Cr", "24", 6, 4, "transition", "cr.html"], 
+            ["Mn", "25", 7, 4, "transition", "mn.html"], 
+            ["Fe", "26", 8, 4, "transition", ""], 
+            ["Co", "27", 9, 4, "transition", ""], 
+            ["Ni", "28", 10, 4, "transition", ""], 
+            ["Cu", "29", 11, 4, "transition", ""], 
+            ["Zn", "30", 12, 4, "transition", ""],
+            ["Ga", "31", 13, 4, "post-transition", ""], 
+            ["Ge", "32", 14, 4, "metalloid", ""], 
+            ["As", "33", 15, 4, "metalloid", ""], 
+            ["Se", "34", 16, 4, "nonmetal", ""], 
+            
+            // แถวที่ 5
+            ["Rb", "37", 1, 5, "alkali", ""], 
+            ["Sr", "38", 2, 5, "alkaline-earth", ""], 
+            ["Y", "39", 3, 5, "transition", ""], 
+            ["Zr", "40", 4, 5, "transition", ""], 
+            ["Nb", "41", 5, 5, "transition", ""], 
+            ["Mo", "42", 6, 5, "transition", ""], 
+            ["Tc", "43", 7, 5, "transition", ""], 
+            ["Ru", "44", 8, 5, "transition", "ru.html"], 
+            ["Rh", "45", 9, 5, "transition", ""], 
+            ["Pd", "46", 10, 5, "transition", ""], 
+            ["Ag", "47", 11, 5, "transition", ""], 
+            ["Cd", "48", 12, 5, "transition", ""], 
+            ["In", "49", 13, 5, "post-transition", ""], 
+            ["Sn", "50", 14, 5, "post-transition", ""], 
+            ["Sb", "51", 15, 5, "metalloid", ""], 
+            ["Te", "52", 16, 5, "metalloid", ""], 
+            ["I", "53", 17, 5, "halogen", ""], 
+            
+            // แถวที่ 6
+            ["Cs", "55", 1, 6, "alkali", ""], 
+            ["Ba", "56", 2, 6, "alkaline-earth", ""], 
+            ["La", "57", 3, 6, "lanthanoid", ""], 
+            ["Hf", "72", 4, 6, "transition", ""], 
+            ["Ta", "73", 5, 6, "transition", ""], 
+            ["W", "74", 6, 6, "transition", ""], 
+            ["Re", "75", 7, 6, "transition", ""], 
+            ["Os", "76", 8, 6, "transition", ""], 
+            ["Ir", "77", 9, 6, "transition", ""], 
+            ["Pt", "78", 10, 6, "transition", ""], 
+            ["Au", "79", 11, 6, "transition", ""], 
+            ["Tl", "81", 13, 6, "post-transition", ""], 
+            ["Pb", "82", 14, 6, "post-transition", ""], 
+            ["Bi", "83", 15, 6, "post-transition", ""], 
+            ["Po", "84", 16, 6, "metalloid", ""], 
+            ["At", "85", 17, 6, "halogen", ""], 
+            
+            // แถวที่ 7
+            ["Fr", "87", 1, 7, "alkali", ""], 
+            ["Ra", "88", 2, 7, "alkaline-earth", ""], 
+            ["Ac", "89", 3, 7, "actinoid", ""], 
+            ["Rf", "104", 4, 7, "transition", ""], 
+            ["Db", "105", 5, 7, "transition", ""], 
+            ["Sg", "106", 6, 7, "transition", ""], 
+            ["Bh", "107", 7, 7, "transition", ""], 
+            ["Hs", "108", 8, 7, "transition", ""], 
+            ["Mt", "109", 9, 7, "transition", ""], 
+            ["Ds", "110", 10, 7, "transition", ""], 
+            ["Rg", "111", 11, 7, "transition", ""], 
+            ["Cn", "112", 12, 7, "transition", ""], 
+            ["Nh", "113", 13, 7, "post-transition", ""], 
+            ["Fl", "114", 14, 7, "post-transition", ""], 
+            ["Mc", "115", 15, 7, "post-transition", ""], 
+            ["Lv", "116", 16, 7, "post-transition", ""], 
+            ["Ts", "117", 17, 7, "halogen", ""], 
+            
+            // Lanthanoids
+            ["Ce", "58", 4, 9, "lanthanoid", ""], 
+            ["Pr", "59", 5, 9, "lanthanoid", ""], 
+            ["Nd", "60", 6, 9, "lanthanoid", ""], 
+            ["Pm", "61", 7, 9, "lanthanoid", ""], 
+            ["Sm", "62", 8, 9, "lanthanoid", ""], 
+            ["Eu", "63", 9, 9, "lanthanoid", ""], 
+            ["Gd", "64", 10, 9, "lanthanoid", ""], 
+            ["Tb", "65", 11, 9, "lanthanoid", ""], 
+            ["Dy", "66", 12, 9, "lanthanoid", ""], 
+            ["Ho", "67", 13, 9, "lanthanoid", ""], 
+            ["Er", "68", 14, 9, "lanthanoid", ""], 
+            ["Tm", "69", 15, 9, "lanthanoid", ""], 
+            ["Yb", "70", 16, 9, "lanthanoid", ""], 
+            ["Lu", "71", 17, 9, "lanthanoid", ""],
+            
+            // Actinoids
+            ["Th", "90", 4, 10, "actinoid", ""], 
+            ["Pa", "91", 5, 10, "actinoid", ""], 
+            ["U", "92", 6, 10, "actinoid", ""], 
+            ["Np", "93", 7, 10, "actinoid", ""], 
+            ["Pu", "94", 8, 10, "actinoid", ""], 
+            ["Am", "95", 9, 10, "actinoid", ""], 
+            ["Cm", "96", 10, 10, "actinoid", ""], 
+            ["Bk", "97", 11, 10, "actinoid", ""], 
+            ["Cf", "98", 12, 10, "actinoid", ""], 
+            ["Es", "99", 13, 10, "actinoid", ""], 
+            ["Fm", "100", 14, 10, "actinoid", ""], 
+            ["Md", "101", 15, 10, "actinoid", ""], 
+            ["No", "102", 16, 10, "actinoid", ""], 
+            ["Lr", "103", 17, 10, "actinoid", ""]
+        ];
+
+        let camera, scene, renderer, controls;
+        let raycaster, mouse;
+        let isARMode = false;
+
+        init();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a2035);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.set(0, 0, 3500);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(100, 200, 300);
+            scene.add(dirLight);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            const boxGeometry = new THREE.BoxGeometry(140, 180, 40);
+
+            for (let i = 0; i < table.length; i++) {
+                const [symbol, number, col, row, type, url] = table[i];
+                const catInfo = categories[type] || { color: '#ffffff' };
+
+                const texture = createTextTexture(symbol, number, catInfo.color);
+                
+                const faceMaterial = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.4 });
+                const sideMaterial = new THREE.MeshStandardMaterial({ color: catInfo.color, roughness: 0.6 });
+                
+                const materials = [sideMaterial, sideMaterial, sideMaterial, sideMaterial, faceMaterial, sideMaterial];
+                const object = new THREE.Mesh(boxGeometry, materials);
+
+                object.position.x = (col * 150) - 1450;
+                object.position.y = -(row * 200) + 1100;
+                object.position.z = 0;
+
+                object.userData = { URL: url, isElement: true };
+
+                scene.add(object);
+            }
+
+            createBackboard();
+            createLegendThai();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // เพิ่มการรองรับ WebXR AR
+            renderer.xr.enabled = true;
+            
+            // ดึงปุ่ม AR จาก HTML
+            const arButton = document.getElementById('arButton');
+            
+            // ตั้งค่าปุ่มให้พร้อมใช้งานเสมอ
+            arButton.textContent = 'เข้าสู่โหมด AR';
+            arButton.disabled = false;
+            
+            // เพิ่ม event listener สำหรับเข้าโหมด AR
+            arButton.addEventListener('click', startAR);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; 
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 500;
+            controls.maxDistance = 10000;
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('click', onMouseClick);
+            window.addEventListener('mousemove', onMouseMove);
+        }
+
+        function startAR() {
+            // ตรวจสอบการรองรับ WebXR
+            if (!('xr' in navigator) || !navigator.xr) {
+                alert('❌ เบราว์เซอร์ของคุณไม่รองรับ WebXR/AR\n\nข้อกำหนด:\n- ใช้ Chrome/Edge บน Android\n- เปิดผ่าน HTTPS เท่านั้น\n- อุปกรณ์ต้องรองรับ AR (ARCore)');
+                return;
+            }
+            
+            const sessionInit = {
+                requiredFeatures: ['hit-test'],
+                optionalFeatures: ['dom-overlay', 'local-floor'],
+                domOverlay: { root: document.body }
+            };
+            
+            navigator.xr.requestSession('immersive-ar', sessionInit).then((session) => {
+                renderer.xr.setSession(session);
+            }).catch((error) => {
+                console.error('ไม่สามารถเริ่ม AR session ได้:', error);
+                alert('❌ ไม่สามารถเปิดโหมด AR ได้\n' + error.message + '\n\nกรุณาตรวจสอบ:\n- เปิดบนมือถือที่รองรับ AR\n- ใช้ HTTPS (ไม่ใช่ file://)\n- อนุญาตให้เข้าถึงกล้อง');
+            });
+        }
+
+        function onMouseClick(event) {
+            // ไม่ตอบสนองการคลิกในโหมด AR
+            if (isARMode) return;
+            
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children);
+
+            if (intersects.length > 0) {
+                const target = intersects[0].object;
+                if (target.userData && target.userData.URL && target.userData.URL !== "") {
+                    let url = target.userData.URL;
+                    
+                    // ** เพิ่ม query parameter ถ้าอยู่ในโหมด AR **
+                    if (isARMode) {
+                        url += (url.includes('?') ? '&' : '?') + 'ar=true';
+                    }
+                    
+                    window.location.href = url; 
+                }
+            }
+        }
+
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children);
+
+            let hoveringElement = false;
+            if (intersects.length > 0) {
+                if (intersects[0].object.userData.isElement && intersects[0].object.userData.URL !== "") {
+                    hoveringElement = true;
+                }
+            }
+            document.body.style.cursor = hoveringElement ? 'pointer' : 'default';
+        }
+
+        function createBackboard() {
+            const geometry = new THREE.BoxGeometry(2900, 2300, 20); 
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const backboard = new THREE.Mesh(geometry, material);
+            backboard.position.set(-25, 100, -40); 
+            scene.add(backboard);
+        }
+
+        function createLegendThai() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1100;
+            canvas.height = 500;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.0)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = "bold 50px sans-serif"; 
+            ctx.fillStyle = "#333";
+            ctx.fillText("ประเภทกลุ่มธาตุ (Categories)", 20, 50);
+
+            const keys = Object.keys(categories);
+            let x = 20;
+            let y = 100;
+            const rowHeight = 65; 
+            const colWidth = 550; 
+
+            keys.forEach((key, index) => {
+                const item = categories[key];
+                
+                ctx.fillStyle = item.color;
+                ctx.fillRect(x, y, 50, 40);
+                ctx.strokeStyle = "#555";
+                ctx.strokeRect(x, y, 50, 40);
+
+                ctx.font = "38px sans-serif"; 
+                ctx.fillStyle = "#000";
+                ctx.fillText(item.label, x + 70, y + 35);
+
+                y += rowHeight;
+                if (index === 4) { 
+                    x += colWidth;
+                    y = 100;
+                }
+            });
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const geometry = new THREE.PlaneGeometry(1100, 500);
+            const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+            const legendMesh = new THREE.Mesh(geometry, material);
+
+            legendMesh.position.set(-50, 600, 10);
+            scene.add(legendMesh);
+        }
+
+        function createTextTexture(symbol, number, bgColorStr) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 330; 
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = bgColorStr;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "rgba(0,0,0,0.15)";
+            ctx.lineWidth = 15;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = 'bold 42px Arial';
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillText(number, 20, 55);
+
+            ctx.font = 'bold 120px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#000000';
+            ctx.fillText(symbol, canvas.width / 2, canvas.height / 2 + 10);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // ใช้ setAnimationLoop แทน requestAnimationFrame เพื่อรองรับ XR
+        renderer.setAnimationLoop(animate);
+
+        // Event listeners สำหรับ AR
+        renderer.xr.addEventListener('sessionstart', () => {
+            isARMode = true;
+            document.getElementById('info').style.display = 'none';
+            if (controls) controls.enabled = false;
+
+            // ปรับขนาดและตำแหน่งสำหรับ AR
+            scene.scale.set(0.003, 0.003, 0.003);
+            scene.position.set(0, -1, -2);
+        });
+
+        renderer.xr.addEventListener('sessionend', () => {
+            isARMode = false;
+            document.getElementById('info').style.display = 'block';
+            if (controls) controls.enabled = true;
+
+            // รีเซ็ตขนาดและตำแหน่ง
+            scene.scale.set(1, 1, 1);
+            scene.position.set(0, 0, 0);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rock Collection 3D & AR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            touch-action: none; 
+            background-color: #f1f5f9; 
+            background-image: url('models/background1.jpg'); 
+            background-size: cover; 
+            background-position: center; 
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        #canvas-container { 
+            width: 100vw; 
+            height: 100vh; 
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 2px; }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+        
+        .rock-btn {
+            transition: all 0.2s ease;
+            font-size: 0.75rem;
+            line-height: 1.1;
+            min-height: 44px;
+            width: 100%;
+            padding: 2px 1px;
+            border: none;
+            outline: none;
+        }
+        .rock-btn:active { transform: scale(0.95); opacity: 0.9; }
+        
+        .rock-btn:first-child { border-radius: 8px 0 0 0; }
+        .rock-btn:nth-child(3) { border-radius: 0 8px 0 0; }
+        .rock-btn:nth-child(7) { border-radius: 0 0 0 8px; }
+        .rock-btn:last-child { border-radius: 0 0 8px 0; }
+        
+        #info-panel { display: none; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        
+        .category-igneous { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+        .category-sedimentary { background: linear-gradient(135deg, #feca57, #ff9f43); }
+        .category-metamorphic { background: linear-gradient(135deg, #48dbfb, #0abde3); }
+        
+        .loader {
+            border: 3px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 32px; height: 32px;
+            animation: spin 0.8s linear infinite;
+            position: absolute; top: 50%; left: 50%; margin-top: -16px; margin-left: -16px;
+            display: none; z-index: 100;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        @media (max-width: 640px) {
+            .rock-btn {
+                font-size: 0.6rem;
+                padding: 1px 1px;
+                min-height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loader" class="loader"></div>
+<div id="canvas-container"></div>
+
+<div class="absolute top-0 left-0 w-full h-full pointer-events-none">
+    
+    <!-- Header -->
+    <div class="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 flex justify-between items-start pointer-events-auto">
+        <div class="glass-panel rounded-xl sm:rounded-2xl p-2 sm:p-3 text-white max-w-[60%]">
+            <h1 class="text-base sm:text-xl font-bold leading-tight">🪨 Rock Collection</h1>
+            <p class="text-[10px] sm:text-xs opacity-80 mt-0.5">เลือกหินเพื่อดูรายละเอียด</p>
+        </div>
+        
+        <button id="ar-btn" onclick="enterAR()" class="glass-panel rounded-full p-2 sm:p-3 hover:bg-slate-800/90 transition-all pointer-events-auto flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span class="text-[8px] sm:text-[10px] text-white mt-0.5">AR</span>
+        </button>
+    </div>
+
+    <!-- ปุ่มชิดกัน gap-0 -->
+    <div class="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4 pointer-events-auto">
+        <div class="glass-panel rounded-xl sm:rounded-2xl p-2 max-w-md mx-auto">
+            <div class="grid grid-cols-3 gap-0" id="button-grid">
+                <!-- หินอัคนี -->
+                <button onclick="showRock('granite')" class="rock-btn category-igneous text-white font-semibold">
+                    <span class="block text-[10px] sm:text-xs leading-none">แกรนิต</span>
+                    <span class="block text-[8px] sm:text-[10px] font-normal opacity-90 mt-0.5 leading-none">Granite</span>
+                </button>
+                <button onclick="showRock('basalt')" class="rock-btn category-igneous text-white font-semibold">
+                    <span class="block text-[10px] sm:text-xs leading-none">บะซอลต์</span>
+                    <span class="block text-[8px] sm:text-[10px] font-normal opacity-90 mt-0.5 leading-none">Basalt</span>
+                </button>
+                <button onclick="showRock('obsidian')" class="rock-btn category-igneous text-white font-semibold">
+                    <span class="block text-[10px] sm:text-xs leading-none">ออบซิเดียน</span>
+                    <span class="block text-[8px] sm:text-[10px] font-normal opacity-90 mt-0.5 leading-none">Obsidian</span>
+                </button>
+                
+                <!-- หินตะกอน -->
+                <button onclick="showRock('limestone')" class="rock-btn category-sedimentary text-white font-semibold">
+                    <span class="block text-[10px] sm:text-xs leading-none">หินปูน</span>
+                    <span class="block text-[8px] sm:text-[10px] font-normal opacity-90 mt-0.5 leading-none">Limestone</span>
+                </button>
+                <button onclick="showRock('sandstone')" class="rock-btn category-sedimentary text-white font-semibold">
+                    <span class="block text-[10px] sm:text-xs leading-none">หินทราย</span>
+                    <span class="block text-[8px] sm:text-[10px] font-normal opacity-90 mt-0.5 leading-none">Sandstone</span>
+                </button>
+                <button onclick="showRock('shale')" class="rock-btn category-sedimentary text-white font-semibold">
+                    <span class="block text-[10px] sm:text-xs leading-none">ชนวน</span>
+                    <span class="block text-[8px] sm:text-[10px] font-normal opacity-90 mt-0.5 leading-none">Shale</span>
+                </button>
+                
+                <!-- หินแปร -->
+                <button onclick="showRock('marble')" class="rock-btn category-metamorphic text-white font-semibold">
+                    <span class="block text-[10px] sm:text-xs leading-none">หินอ่อน</span>
+                    <span class="block text-[8px] sm:text-[10px] font-normal opacity-90 mt-0.5 leading-none">Marble</span>
+                </button>
+                <button onclick="showRock('gneiss')" class="rock-btn category-metamorphic text-white font-semibold">
+                    <span class="block text-[10px] sm:text-xs leading-none">กนีส</span>
+                    <span class="block text-[8px] sm:text-[10px] font-normal opacity-90 mt-0.5 leading-none">Gneiss</span>
+                </button>
+                <button onclick="showRock('quartzite')" class="rock-btn category-metamorphic text-white font-semibold">
+                    <span class="block text-[10px] sm:text-xs leading-none">ควอตไซต์</span>
+                    <span class="block text-[8px] sm:text-[10px] font-normal opacity-90 mt-0.5 leading-none">Quartzite</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div id="info-panel" class="absolute right-2 sm:right-4 top-16 sm:top-20 w-52 sm:w-64 lg:w-72 glass-panel rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white pointer-events-auto max-h-[40vh] sm:max-h-[50vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-2 sm:mb-3">
+            <h2 id="rock-name" class="text-base sm:text-lg lg:text-xl font-bold leading-tight pr-2">ชื่อหิน</h2>
+            <button onclick="closeInfo()" class="text-white/70 hover:text-white p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div id="rock-category" class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold mb-2 sm:mb-3 bg-white/20">ประเภท</div>
+        
+        <div class="space-y-2 sm:space-y-3">
+            <div>
+                <h3 class="font-bold text-xs sm:text-sm mb-1">🔬 ลักษณะทางกายภาพ</h3>
+                <p id="rock-desc" class="text-[10px] sm:text-xs leading-relaxed opacity-90">รายละเอียด...</p>
+            </div>
+            
+            <div>
+                <h3 class="font-bold text-xs sm:text-sm mb-1">📊 ข้อมูลทางเทคนิค</h3>
+                <ul id="rock-details" class="text-[10px] sm:text-xs space-y-0.5 opacity-90">
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exit Button -->
+    <button id="exit-btn" onclick="resetView()" class="hidden absolute top-16 sm:top-20 left-2 sm:left-4 glass-panel rounded-full px-3 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm text-white font-semibold hover:bg-slate-800/90 transition-all pointer-events-auto">
+        ← กลับ
+    </button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<script>
+const rocksData = {
+    granite: { name: "แกรนิต (Granite)", category: "หินอัคนี (Igneous)", modelFile: "models/granite1.glb", 
+               desc: "หินอัคนีแทรกซ้อน มีเนื้อหยาบ", details: ["ความแข็ง: 6-7 (Mohs)", "เนื้อหิน: หยาบ"] },
+    basalt: { name: "บะซอลต์ (Basalt)", category: "หินอัคนี (Igneous)", modelFile: "models/basalt.glb",
+              desc: "หินอัคนีพุ เนื้อละเอียด", details: ["ความแข็ง: 5-6 (Mohs)", "เนื้อหิน: ละเอียด"] },
+    obsidian: { name: "ออบซิเดียน (Obsidian)", category: "หินอัคนี (Igneous)", modelFile: "models/obsidian.glb",
+                desc: "หินแก้วภูเขาไฟ", details: ["ความแข็ง: 5-5.5 (Mohs)", "เนื้อหิน: แก้ว"] },
+    limestone: { name: "หินปูน (Limestone)", category: "หินตะกอน (Sedimentary)", modelFile: "models/limestone.glb",
+                 desc: "หินตะกอนเคมี", details: ["ความแข็ง: 3 (Mohs)", "มีฟอสซิล"] },
+    sandstone: { name: "หินทราย (Sandstone)", category: "หินตะกอน (Sedimentary)", modelFile: "models/sandstone.glb",
+                 desc: "หินตะกอนขนาดทราย", details: ["ความแข็ง: 6-7 (Mohs)", "เนื้อหิน: หยาบ"] },
+    shale: { name: "ชนวน (Shale)", category: "หินตะกอน (Sedimentary)", modelFile: "models/shale.glb",
+             desc: "หินตะกอนขนาดดิน", details: ["ความแข็ง: 1-3 (Mohs)", "เนื้อละเอียดมาก"] },
+    marble: { name: "หินอ่อน (Marble)", category: "หินแปร (Metamorphic)", modelFile: "models/marble.glb",
+              desc: "หินแปรจากหินปูน", details: ["ความแข็ง: 3-4 (Mohs)", "ผลึกหยาบ"] },
+    gneiss: { name: "กนีส (Gneiss)", category: "หินแปร (Metamorphic)", modelFile: "models/gneiss.glb",
+              desc: "หินแปรขั้นสูง", details: ["ความแข็ง: 6-7 (Mohs)", "เป็นแถบ"] },
+    quartzite: { name: "ควอตไซต์ (Quartzite)", category: "หินแปร (Metamorphic)", modelFile: "models/quartzite.glb",
+                 desc: "หินแปรจากหินทราย", details: ["ความแข็ง: 7 (Mohs)", "เนื้อแน่น"] }
+};
+
+let scene, camera, renderer, controls, loader;
+let currentRock = null;
+
+function init() {
+    scene = new THREE.Scene();
+    // ไม่กำหนด background เพื่อให้เห็นพื้นหลัง body
+    
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 4);
+    
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.xr.enabled = true;
+    renderer.setClearColor(0x000000, 0); // โปร่งใส
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+    
+    loader = new THREE.GLTFLoader();
+    
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 1.5;
+    controls.maxDistance = 10;
+    controls.enablePan = false;
+    controls.target.set(0, 0, 0);
+    
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+    
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(5, 5, 5);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+    
+    const fillLight = new THREE.DirectionalLight(0xe0f2fe, 0.5);
+    fillLight.position.set(-5, 0, -5);
+    scene.add(fillLight);
+    
+    window.addEventListener('resize', onWindowResize, false);
+    animate();
+}
+
+function showRock(type) {
+    const data = rocksData[type];
+    document.getElementById('rock-name').textContent = data.name;
+    document.getElementById('rock-category').textContent = data.category;
+    document.getElementById('rock-desc').textContent = data.desc;
+    document.getElementById('rock-details').innerHTML = data.details.map(d => `<li>• ${d}</li>`).join('');
+    document.getElementById('info-panel').style.display = 'block';
+    document.getElementById('exit-btn').classList.remove('hidden');
+    loadModel(data.modelFile);
+}
+
+function loadModel(filePath) {
+    if (currentRock) {
+        scene.remove(currentRock);
+        currentRock = null;
+    }
+    document.getElementById('loader').style.display = 'block';
+    
+    loader.load(filePath, (gltf) => {
+        document.getElementById('loader').style.display = 'none';
+        currentRock = gltf.scene;
+        
+        const box = new THREE.Box3().setFromObject(currentRock);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        
+        const targetSize = 2.5;
+        const scale = targetSize / maxDim;
+        
+        currentRock.scale.setScalar(scale);
+        
+        const pivot = new THREE.Group();
+        currentRock.position.set(
+            -center.x * scale,
+            -center.y * scale,
+            -center.z * scale
+        );
+        
+        pivot.add(currentRock);
+        currentRock = pivot;
+        
+        currentRock.traverse(c => { 
+            if(c.isMesh) { 
+                c.castShadow = true; 
+                c.receiveShadow = true; 
+            }
+        });
+        
+        scene.add(currentRock);
+        
+        controls.target.set(0, 0, 0);
+        controls.update();
+        
+        let s = 0;
+        const entry = setInterval(() => {
+            s += 0.1;
+            currentRock.scale.setScalar(s);
+            if(s >= 1) clearInterval(entry);
+        }, 16);
+        
+    }, undefined, (error) => {
+        document.getElementById('loader').style.display = 'none';
+        console.error('Error loading model:', error);
+        
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0x64748b,
+            roughness: 0.5,
+            metalness: 0.1
+        });
+        currentRock = new THREE.Mesh(geometry, material);
+        scene.add(currentRock);
+    });
+}
+
+function closeInfo() { 
+    document.getElementById('info-panel').style.display = 'none'; 
+}
+
+function resetView() { 
+    if(currentRock) {
+        scene.remove(currentRock);
+        currentRock = null;
+    }
+    document.getElementById('info-panel').style.display = 'none'; 
+    document.getElementById('exit-btn').classList.add('hidden');
+    
+    controls.reset();
+    controls.target.set(0, 0, 0);
+    controls.update();
+}
+
+async function enterAR() { 
+    if(!navigator.xr) {
+        alert('อุปกรณ์นี้ไม่รองรับ AR');
+        return;
+    }
+    try {
+        const supported = await navigator.xr.isSessionSupported('immersive-ar');
+        if(supported) {
+            alert('เริ่มโหมด AR...');
+        } else {
+            alert('ไม่รองรับ AR บนอุปกรณ์นี้');
+        }
+    } catch(e) {
+        alert('ไม่สามารถใช้งาน AR ได้');
+    }
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    
+    if(currentRock) {
+        currentRock.rotation.y += 0.005;
+    }
+    
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+init();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Learning Interface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        .sidebar {
+            width: 200px;
+            background-color: #2c3e50;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+            transition: transform 0.3s ease;
+            height: 100vh;
+        }
+
+        .sidebar button {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar button:hover {
+            background-color: #2980b9;
+        }
+
+        /* ปุ่มฟันเฟือง - อยู่ด้านล่างสุด แก้ไขไม่ให้เอียง */
+        .settings-btn {
+            margin-top: auto;
+            background-color: #34495e !important;
+            border: 2px solid #465f75 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px !important;
+        }
+
+        .settings-btn:hover {
+            background-color: #465f75 !important;
+            /* ลบ transform: rotate(30deg); ออกเพื่อไม่ให้เอียง */
+        }
+
+        .content {
+            flex: 1;
+            position: relative;
+            padding: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .iframe-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 15;
+            background: white;
+        }
+
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .content.page-active .default-content {
+            display: none;
+        }
+
+        .content.page-active .iframe-container {
+            display: block;
+        }
+
+        .bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(0,0,0,0.05);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Modal ตั้งค่าเสียง */
+        .settings-modal {
+            display: none;
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            width: 280px;
+            max-height: 70vh;
+            overflow-y: auto;
+            background: rgba(44, 62, 80, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            z-index: 100;
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .settings-modal.show {
+            display: block;
+        }
+
+        .settings-header {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 10px;
+        }
+
+        .sound-control {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            color: #bdc3c7;
+            font-size: 14px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* ปุ่มเปิด/ปิดเสียง */
+        .mute-toggle {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+        }
+
+        .mute-toggle.muted {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .mute-toggle:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        /* แถบเลื่อนระดับเสียง */
+        .volume-slider-container {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .volume-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #34495e;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(52, 152, 219, 0.5);
+            transition: transform 0.2s;
+        }
+
+        .volume-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .volume-value {
+            color: #3498db;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+
+        /* รายการเพลง */
+        .track-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .track-btn {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+            color: #bdc3c7;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .track-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        .track-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .track-btn::before {
+            content: '🎵';
+            font-size: 16px;
+        }
+
+        .close-settings {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            background: transparent;
+            color: #bdc3c7;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .close-settings:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                height: 100vh;
+                transform: translateX(-100%);
+                width: 250px;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .menu-toggle {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                z-index: 30;
+                background: #2c3e50;
+                color: white;
+                border: none;
+                padding: 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 20px;
+                display: none;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            .bottom-bar {
+                padding: 10px;
+            }
+
+            /* บนมือถือให้ modal อยู่ตรงกลาง */
+            .settings-modal {
+                left: 50%;
+                bottom: auto;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                width: 90%;
+                max-width: 320px;
+                max-height: 80vh;
+            }
+            
+            .settings-modal.show {
+                display: block;
+            }
+        }
+
+        .content-overlay {
+            position: relative;
+            z-index: 5;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        @supports (-webkit-touch-callout: none) {
+            .content {
+                height: -webkit-fill-available;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <button id="periodicBtn" onclick="loadPage('element.html', 'periodic')">ตารางธาตุ</button>
+        <button onclick="loadPage('solar.html', 'solar')">ระบบสุริยะ</button>
+        <button onclick="loadPage('rock.html', 'horm')">หิน</button>
+        
+        <!-- ปุ่มฟันเฟืองอยู่ใต้สุด แก้ไขไม่เอียงแล้ว -->
+        <button class="settings-btn" onclick="toggleSettings()" title="ตั้งค่าเสียง">
+            <span>⚙️</span>
+            <span>ตั้งค่าเสียง</span>
+        </button>
+    </div>
+
+    <!-- Modal ตั้งค่าเสียง -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-header">
+            <span>🎵</span>
+            <span>ตั้งค่าเสียง</span>
+        </div>
+        
+        <div class="sound-control">
+            <label class="control-label">สถานะเสียง</label>
+            <button class="mute-toggle" id="muteBtn" onclick="toggleMute()">
+                <span id="muteIcon">🔊</span>
+                <span id="muteText">เปิดเสียงอยู่</span>
+            </button>
+        </div>
+
+        <div class="sound-control">
+            <label class="control-label">ระดับเสียง</label>
+            <div class="volume-slider-container">
+                <input type="range" class="volume-slider" id="volumeSlider" 
+                       min="0" max="100" value="50" oninput="changeVolume(this.value)">
+                <div class="volume-value" id="volumeValue">50%</div>
+            </div>
+        </div>
+
+        <!-- เลือกเพลงประกอบ 5 เพลง -->
+        <div class="sound-control">
+            <label class="control-label">เลือกเสียงประกอบ</label>
+            <div class="track-list" id="trackList">
+                <!-- JavaScript จะสร้างปุ่มที่นี่ -->
+            </div>
+        </div>
+
+        <button class="close-settings" onclick="toggleSettings()">ปิดหน้าต่าง</button>
+    </div>
+
+    <button class="menu-toggle" id="menuToggle" style="display: none;">☰ เมนู</button>
+
+    <div class="content" id="mainContent">
+        <div class="iframe-container" id="iframeContainer">
+            <iframe id="contentFrame" src="" allow="camera"></iframe>
+        </div>
+        
+        <div class="default-content" id="defaultContent">
+            <div class="content-overlay">
+            </div>
+        </div>
+
+        <div class="bottom-bar" id="bottomBar">
+        </div>
+    </div>
+
+    <script>
+        let currentPage = null;
+        const mainContent = document.getElementById('mainContent');
+        const contentFrame = document.getElementById('contentFrame');
+        
+        // ตัวแปรควบคุมเสียง
+        const bgMusic = new Audio(); // ใช้ Audio object แทน element
+        bgMusic.loop = true;
+        
+        const muteBtn = document.getElementById('muteBtn');
+        const muteIcon = document.getElementById('muteIcon');
+        const muteText = document.getElementById('muteText');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeValue = document.getElementById('volumeValue');
+        const settingsModal = document.getElementById('settingsModal');
+        const trackList = document.getElementById('trackList');
+        
+        // 🎵 กำหนด 5 ไฟล์เสียงที่นี่ - แก้ไขชื่อไฟล์ตามที่คุณมี
+        const tracks = [
+            { name: "เพลงที่ 1", src: "1.mp3" },
+            { name: "เพลงบรรยายระบบสุริยะ", src: "2.mp3" },
+            { name: "เพลงที่ 2", src: "3.mp3" },
+            { name: "เพลงที่ 3", src: "4.mp3" },
+            { name: "เพลงที่ 4", src: "music5.mp3" }
+        ];
+        
+        let currentTrackIndex = 0;
+        let isMuted = false;
+        let currentVolume = 50;
+
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+
+        if (isMobile) {
+            menuToggle.style.display = 'block';
+        }
+
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+        });
+
+        // สร้างปุ่มเลือกเพลง
+        function createTrackButtons() {
+            trackList.innerHTML = '';
+            tracks.forEach((track, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'track-btn';
+                if (index === currentTrackIndex) btn.classList.add('active');
+                btn.textContent = track.name;
+                btn.onclick = () => selectTrack(index);
+                trackList.appendChild(btn);
+            });
+        }
+
+        // เลือกเพลง
+        function selectTrack(index) {
+            currentTrackIndex = index;
+            bgMusic.src = tracks[index].src;
+            bgMusic.volume = currentVolume / 100;
+            
+            // โหลดเสียงใหม่
+            bgMusic.load();
+            
+            // เล่นถ้าไม่ได้ปิดเสียง
+            if (!isMuted) {
+                bgMusic.play().catch(error => {
+                    console.log('ต้องมีการกด interact ก่อนเล่นเสียง:', error);
+                });
+            }
+            
+            // อัปเดต UI
+            createTrackButtons();
+            
+            // บันทึกลง localStorage
+            localStorage.setItem('selectedTrack', index);
+        }
+
+        // ฟังก์ชันเปิด/ปิด Modal ตั้งค่า
+        function toggleSettings() {
+            settingsModal.classList.toggle('show');
+        }
+
+        // ฟังก์ชันเปิด/ปิดเสียง
+        function toggleMute() {
+            isMuted = !isMuted;
+            
+            if (isMuted) {
+                bgMusic.pause();
+                muteBtn.classList.add('muted');
+                muteIcon.textContent = '🔇';
+                muteText.textContent = 'ปิดเสียงอยู่';
+            } else {
+                bgMusic.play().catch(e => console.log("Autoplay prevented"));
+                muteBtn.classList.remove('muted');
+                muteIcon.textContent = '🔊';
+                muteText.textContent = 'เปิดเสียงอยู่';
+            }
+            
+            localStorage.setItem('isMuted', isMuted);
+        }
+
+        // ฟังก์ชันปรับระดับเสียง
+        function changeVolume(value) {
+            currentVolume = value;
+            volumeValue.textContent = value + '%';
+            bgMusic.volume = value / 100;
+            localStorage.setItem('volume', value);
+        }
+
+        function loadPage(url, pageType) {
+            if (currentPage === pageType) {
+                contentFrame.src = '';
+                mainContent.classList.remove('page-active');
+                currentPage = null;
+            } else {
+                contentFrame.src = url;
+                mainContent.classList.add('page-active');
+                currentPage = pageType;
+            }
+            
+            if (isMobile) {
+                sidebar.classList.remove('show');
+            }
+        }
+
+        // ปิด modal เมื่อคลิกนอกพื้นที่
+        document.addEventListener('click', (e) => {
+            if (!settingsModal.contains(e.target) && !e.target.closest('.settings-btn')) {
+                settingsModal.classList.remove('show');
+            }
+        });
+
+        // โหลดการตั้งค่าจาก localStorage เมื่อเปิดหน้า
+        window.addEventListener('load', () => {
+            createTrackButtons();
+            
+            // โหลดเพลงที่เลือกไว้ล่าสุด
+            const savedTrack = localStorage.getItem('selectedTrack');
+            if (savedTrack !== null) {
+                currentTrackIndex = parseInt(savedTrack);
+                bgMusic.src = tracks[currentTrackIndex].src;
+            } else {
+                bgMusic.src = tracks[0].src;
+            }
+            
+            // โหลดระดับเสียง
+            const savedVolume = localStorage.getItem('volume');
+            if (savedVolume !== null) {
+                currentVolume = parseInt(savedVolume);
+                volumeSlider.value = currentVolume;
+                volumeValue.textContent = currentVolume + '%';
+                bgMusic.volume = currentVolume / 100;
+            }
+            
+            // โหลดสถานะปิดเสียง
+            const savedMute = localStorage.getItem('isMuted');
+            if (savedMute === 'true') {
+                isMuted = true;
+                muteBtn.classList.add('muted');
+                muteIcon.textContent = '🔇';
+                muteText.textContent = 'ปิดเสียงอยู่';
+            }
+        });
+
+        // รับข้อความจาก iframe
+        window.addEventListener('message', (event) => {
+            console.log('Message from iframe:', event.data);
+        });
+    </script>
+
+</body>
+</html>
